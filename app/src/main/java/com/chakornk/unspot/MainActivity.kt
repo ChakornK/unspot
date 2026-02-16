@@ -142,8 +142,8 @@ class MainActivity : ComponentActivity() {
 					}
 
 					if (isCheckingAuth) {
-						Scaffold() {
-							LoadingScreen()
+						Scaffold { innerPadding ->
+							Box(modifier = Modifier.padding(innerPadding)) { LoadingScreen() }
 						}
 					} else {
 						Scaffold(
@@ -156,11 +156,10 @@ class MainActivity : ComponentActivity() {
 										tabs.forEach { tab ->
 											NavigationBarItem(
 												icon = {
-													Icon(
-														if (currentRoute == tab.route) tab.iconSelected else tab.icon,
-														tab.label
-													)
-												},
+												Icon(
+													if (currentRoute == tab.route) tab.iconSelected else tab.icon, tab.label
+												)
+											},
 												label = { Text(tab.label) },
 												selected = currentRoute == tab.route,
 												onClick = {

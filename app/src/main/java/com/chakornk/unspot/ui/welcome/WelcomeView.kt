@@ -23,8 +23,7 @@ import com.chakornk.unspot.ui.theme.ThemePreview
 fun WelcomeScreen(viewModel: WelcomeViewModel) {
 	WelcomeContent(
 		onSignInClick = { viewModel.onSignInClick() },
-		onSignUpClick = { viewModel.onSignUpClick() }
-	)
+		onSignUpClick = { viewModel.onSignUpClick() })
 }
 
 @Composable
@@ -46,9 +45,7 @@ fun WelcomeContent(
 		)
 		Spacer(modifier = Modifier.height(16.dp))
 		Text(
-			text = "A music player.",
-			fontSize = 16.sp,
-			color = MaterialTheme.colorScheme.onSurfaceVariant
+			text = "A music player.", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 
 		Spacer(modifier = Modifier.weight(1f))

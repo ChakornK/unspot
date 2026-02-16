@@ -35,11 +35,7 @@ sealed class Tab(
 	val iconSelected: ImageVector
 ) {
 	object Home : Tab(
-		View.Home,
-		"home",
-		"Home",
-		MaterialSymbols.Outlined.Home,
-		MaterialSymbols.OutlinedFilled.Home
+		View.Home, "home", "Home", MaterialSymbols.Outlined.Home, MaterialSymbols.OutlinedFilled.Home
 	)
 
 	object Search : Tab(

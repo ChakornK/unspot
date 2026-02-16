@@ -2,4 +2,4 @@ package com.chakornk.unspot.ui.library
 
 import androidx.lifecycle.ViewModel
 
-class LibraryViewModel : ViewModel() {}
+class LibraryViewModel : ViewModel()
