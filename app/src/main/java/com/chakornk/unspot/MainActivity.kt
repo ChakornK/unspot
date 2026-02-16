@@ -1,7 +1,6 @@
 package com.chakornk.unspot
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -11,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,6 +40,8 @@ import com.chakornk.unspot.ui.home.HomeScreen
 import com.chakornk.unspot.ui.library.LibraryScreen
 import com.chakornk.unspot.ui.navigation.Tab
 import com.chakornk.unspot.ui.navigation.View
+import com.chakornk.unspot.ui.playback.NowPlayingBar
+import com.chakornk.unspot.ui.playback.PlaybackViewModel
 import com.chakornk.unspot.ui.search.SearchScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.chakornk.unspot.ui.welcome.WelcomeScreen
@@ -121,9 +124,11 @@ class MainActivity : ComponentActivity() {
 			val navController = rememberNavController()
 			val authViewModel: AuthViewModel = viewModel()
 			val welcomeViewModel: WelcomeViewModel = viewModel()
+			val playbackViewModel: PlaybackViewModel = viewModel()
 			val webExtensionManager = remember { WebExtensionManager() }
 
 			authViewModel.attachManager(webExtensionManager)
+			playbackViewModel.attachManager(webExtensionManager)
 
 			val isLoggedIn = authViewModel.isLoggedIn
 			val isCheckingAuth = authViewModel.isCheckingAuth
@@ -149,28 +154,34 @@ class MainActivity : ComponentActivity() {
 						Scaffold(
 							modifier = Modifier.fillMaxSize(), bottomBar = {
 								if (isLoggedIn) {
-									NavigationBar {
-										val navBackStackEntry by navController.currentBackStackEntryAsState()
-										val currentRoute = navBackStackEntry?.destination?.route
+									Column {
+										NowPlayingBar(
+											state = playbackViewModel.playbackState,
+											onTogglePlayback = { playbackViewModel.togglePlayback() })
+										NavigationBar {
+											val navBackStackEntry by navController.currentBackStackEntryAsState()
+											val currentRoute = navBackStackEntry?.destination?.route
 
-										tabs.forEach { tab ->
-											NavigationBarItem(
-												icon = {
-												Icon(
-													if (currentRoute == tab.route) tab.iconSelected else tab.icon, tab.label
-												)
-											},
-												label = { Text(tab.label) },
-												selected = currentRoute == tab.route,
-												onClick = {
-													navController.navigate(tab.route) {
-														popUpTo(navController.graph.startDestinationId) {
-															saveState = true
+											tabs.forEach { tab ->
+												NavigationBarItem(
+													icon = {
+													Icon(
+														if (currentRoute == tab.route) tab.iconSelected else tab.icon,
+														tab.label
+													)
+												},
+													label = { Text(tab.label) },
+													selected = currentRoute == tab.route,
+													onClick = {
+														navController.navigate(tab.route) {
+															popUpTo(navController.graph.startDestinationId) {
+																saveState = true
+															}
+															launchSingleTop = true
+															restoreState = true
 														}
-														launchSingleTop = true
-														restoreState = true
-													}
-												})
+													})
+											}
 										}
 									}
 								}
@@ -205,7 +216,7 @@ class MainActivity : ComponentActivity() {
 
 													is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
 														val intent = Intent(
-															Intent.ACTION_VIEW, Uri.parse(event.url)
+															Intent.ACTION_VIEW, event.url.toUri()
 														)
 														context.startActivity(intent)
 													}

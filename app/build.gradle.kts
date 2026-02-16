@@ -6,9 +6,7 @@ plugins {
 
 android {
 	namespace = "com.chakornk.unspot"
-	compileSdk {
-		version = release(36)
-	}
+	compileSdk = 36
 
 	defaultConfig {
 		applicationId = "com.chakornk.unspot"
@@ -24,8 +22,7 @@ android {
 		release {
 			isMinifyEnabled = false
 			proguardFiles(
-				getDefaultProguardFile("proguard-android-optimize.txt"),
-				"proguard-rules.pro"
+				getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
 			)
 		}
 	}
@@ -56,6 +53,7 @@ dependencies {
 	implementation("com.composables:icons-material-symbols-outlined-cmp:2.2.1")
 	implementation("com.composables:icons-material-symbols-outlined-filled-cmp:2.2.1")
 	implementation("org.mozilla.geckoview:geckoview:147.0.20260203002554")
+	implementation("io.coil-kt:coil-compose:2.7.0")
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)

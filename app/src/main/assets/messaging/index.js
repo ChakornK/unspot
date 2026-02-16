@@ -51,6 +51,17 @@ const handlers = {
     }
     return { success: false, error: "Inputs not found" };
   },
+  getPlaybackState: () => {
+    return {
+      title: "Song Title",
+      artist: "Artist Name",
+      albumArt: "https://i.scdn.co/image/ab67616d0000b273b70e79d863b774579cc6678b", // Example image
+      isPlaying: false
+    };
+  },
+  togglePlayback: () => {
+    return { success: true };
+  }
 };
 
 ipc.onMessage.addListener((message) => {
@@ -67,3 +78,9 @@ ipc.onMessage.addListener((message) => {
     }
   }
 });
+
+// Periodically poll for playback state
+setInterval(() => {
+  const state = handlers.getPlaybackState();
+  ipc.postMessage({ type: "playbackStateUpdate", data: state });
+}, 1000);
