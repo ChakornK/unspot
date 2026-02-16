@@ -1,7 +1,10 @@
 package com.chakornk.unspot
 
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.tween
@@ -24,13 +27,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.chakornk.unspot.gecko.WebExtensionManager
+import com.chakornk.unspot.ui.AuthViewModel
 import com.chakornk.unspot.ui.screens.HomeScreen
 import com.chakornk.unspot.ui.screens.LibraryScreen
+import com.chakornk.unspot.ui.screens.LoginScreen
 import com.chakornk.unspot.ui.screens.SearchScreen
+import com.chakornk.unspot.ui.screens.WelcomeScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Home
@@ -46,6 +54,8 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.StorageController
+import org.mozilla.geckoview.WebExtension
+
 
 sealed class Screen(
 	val route: String,
@@ -53,6 +63,16 @@ sealed class Screen(
 	val icon: ImageVector,
 	val iconSelected: ImageVector
 ) {
+	object Welcome : Screen(
+		"welcome",
+		"Welcome",
+		MaterialSymbols.Outlined.Home,
+		MaterialSymbols.OutlinedFilled.Home
+	)
+
+	object Login :
+		Screen("login", "Login", MaterialSymbols.Outlined.Home, MaterialSymbols.OutlinedFilled.Home)
+
 	object Home :
 		Screen("home", "Home", MaterialSymbols.Outlined.Home, MaterialSymbols.OutlinedFilled.Home)
 
@@ -72,7 +92,7 @@ sealed class Screen(
 }
 
 @Composable
-fun SpotifyWebView() {
+fun SpotifyWebView(authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager) {
 	val context = LocalContext.current
 
 	val runtimeSettings =
@@ -92,6 +112,30 @@ fun SpotifyWebView() {
 	runtime.storageController.clearData(
 		StorageController.ClearFlags.DOM_STORAGES
 	)
+	runtime.webExtensionController
+		.ensureBuiltIn("resource://android/assets/messaging/", "@unspot")
+		.accept(
+			{ extension: WebExtension? ->
+				Log.i(
+					"MessageDelegate",
+					"Extension installed: $extension"
+				)
+				extension?.let {
+					session.webExtensionController.setMessageDelegate(
+						it,
+						webExtensionManager.messageDelegate,
+						"browser"
+					)
+				}
+			},
+			{ e: Throwable? ->
+				Log.e(
+					"MessageDelegate",
+					"Error registering WebExtension",
+					e
+				)
+			}
+		)
 
 	AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
 		GeckoView(ctx).apply {
@@ -108,6 +152,12 @@ fun SpotifyWebView() {
 				}
 			}
 
+			session.progressDelegate = object : GeckoSession.ProgressDelegate {
+				override fun onPageStop(session: GeckoSession, success: Boolean) {
+					authViewModel.checkAuthStatus()
+				}
+			}
+
 			session.loadUri("https://open.spotify.com")
 		}
 	}, update = { /* session management if needed */ })
@@ -119,47 +169,60 @@ class MainActivity : ComponentActivity() {
 
 		setContent {
 			val navController = rememberNavController()
+			val authViewModel: AuthViewModel = viewModel()
+			val webExtensionManager = remember { WebExtensionManager() }
+
+			authViewModel.initialize(webExtensionManager)
+
+			val isLoggedIn = authViewModel.isLoggedIn
+			val isCheckingAuth = authViewModel.isCheckingAuth
+
 			val items = listOf(
 				Screen.Home, Screen.Search, Screen.Library
 			)
 
+			val context = LocalContext.current
+
 			UnspotTheme {
 				Scaffold(
-					modifier = Modifier.fillMaxSize(), bottomBar = {
-						NavigationBar {
-							val navBackStackEntry by navController.currentBackStackEntryAsState()
-							val currentRoute = navBackStackEntry?.destination?.route
+					modifier = Modifier.fillMaxSize(),
+					bottomBar = {
+						if (isLoggedIn && !isCheckingAuth) {
+							NavigationBar {
+								val navBackStackEntry by navController.currentBackStackEntryAsState()
+								val currentRoute = navBackStackEntry?.destination?.route
 
-							items.forEach { screen ->
-								NavigationBarItem(
-									icon = {
-										Icon(
-											if (currentRoute == screen.route) screen.iconSelected else screen.icon,
-											screen.label
-										)
-									},
-									label = { Text(screen.label) },
-									selected = currentRoute == screen.route,
-									onClick = {
-										navController.navigate(screen.route) {
-											popUpTo(navController.graph.startDestinationId) {
-												saveState = true
+								items.forEach { screen ->
+									NavigationBarItem(
+										icon = {
+											Icon(
+												if (currentRoute == screen.route) screen.iconSelected else screen.icon,
+												screen.label
+											)
+										},
+										label = { Text(screen.label) },
+										selected = currentRoute == screen.route,
+										onClick = {
+											navController.navigate(screen.route) {
+												popUpTo(navController.graph.startDestinationId) {
+													saveState = true
+												}
+												launchSingleTop = true
+												restoreState = true
 											}
-											launchSingleTop = true
-											restoreState = true
-										}
-									})
+										})
+								}
 							}
 						}
 					}) { innerPadding ->
 					Box(modifier = Modifier.padding(innerPadding)) {
 						Box(modifier = Modifier.alpha(0f)) {
-							SpotifyWebView()
+							SpotifyWebView(authViewModel, webExtensionManager)
 						}
 
 						NavHost(
 							navController = navController,
-							startDestination = Screen.Home.route,
+							startDestination = if (isLoggedIn) Screen.Home.route else Screen.Welcome.route,
 							enterTransition = {
 								fadeIn(tween(300)) + scaleIn(
 									initialScale = 0.92f, animationSpec = tween(300)
@@ -176,6 +239,23 @@ class MainActivity : ComponentActivity() {
 							popExitTransition = {
 								fadeOut(tween(90))
 							}) {
+							composable(Screen.Welcome.route) {
+								WelcomeScreen(onSignInClick = {
+									navController.navigate(Screen.Login.route)
+								}, onSignUpClick = {
+									val intent =
+										Intent(
+											Intent.ACTION_VIEW,
+											Uri.parse("https://www.spotify.com/signup")
+										)
+									context.startActivity(intent)
+								})
+							}
+							composable(Screen.Login.route) {
+								LoginScreen(onLoginClick = { email, password ->
+									authViewModel.login(email, password)
+								})
+							}
 							composable(Screen.Home.route) { HomeScreen() }
 							composable(Screen.Search.route) { SearchScreen() }
 							composable(Screen.Library.route) { LibraryScreen() }
@@ -186,3 +266,4 @@ class MainActivity : ComponentActivity() {
 		}
 	}
 }
+

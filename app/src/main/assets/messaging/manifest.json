@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "unspot",
+  "version": "1.0",
+  "description": "Unspot web extension",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@unspot"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.spotify.com/*"],
+      "js": ["index.js"]
+    }
+  ],
+  "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons"]
+}
