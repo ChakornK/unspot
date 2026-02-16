@@ -26,9 +26,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chakornk.unspot.ui.theme.PreviewScreen
+import com.chakornk.unspot.ui.theme.ThemePreview
 
 @Composable
 fun LoginScreen(viewModel: AuthViewModel) {
+	LoginContent(onLogin = { email, password -> viewModel.login(email, password) })
+}
+
+@Composable
+fun LoginContent(onLogin: (String, String) -> Unit) {
 	var email by remember { mutableStateOf("") }
 	var password by remember { mutableStateOf("") }
 
@@ -76,7 +83,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
 		Spacer(modifier = Modifier.weight(1f))
 
 		Button(
-			onClick = { viewModel.login(email, password) },
+			onClick = { onLogin(email, password) },
 			modifier = Modifier.fillMaxWidth(),
 		) {
 			Text(text = "Log In", modifier = Modifier.padding(vertical = 8.dp))
@@ -84,3 +91,10 @@ fun LoginScreen(viewModel: AuthViewModel) {
 	}
 }
 
+@ThemePreview
+@Composable
+fun LoginScreenPreview() {
+	PreviewScreen {
+		LoginContent(onLogin = { _, _ -> })
+	}
+}

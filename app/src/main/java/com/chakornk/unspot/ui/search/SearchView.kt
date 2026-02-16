@@ -6,6 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.chakornk.unspot.ui.theme.PreviewScreen
+import com.chakornk.unspot.ui.theme.ThemePreview
 
 @Composable
 fun SearchScreen() {
@@ -13,5 +15,13 @@ fun SearchScreen() {
 		modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
 	) {
 		Text(text = "Search Screen")
+	}
+}
+
+@ThemePreview
+@Composable
+fun SearchScreenPreview() {
+	PreviewScreen {
+		SearchScreen()
 	}
 }

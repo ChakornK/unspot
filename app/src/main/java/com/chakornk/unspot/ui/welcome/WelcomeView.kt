@@ -16,11 +16,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chakornk.unspot.ui.theme.PreviewScreen
+import com.chakornk.unspot.ui.theme.ThemePreview
 
 @Composable
 fun WelcomeScreen(viewModel: WelcomeViewModel) {
+	WelcomeContent(
+		onSignInClick = { viewModel.onSignInClick() },
+		onSignUpClick = { viewModel.onSignUpClick() }
+	)
+}
+
+@Composable
+fun WelcomeContent(
+	onSignInClick: () -> Unit, onSignUpClick: () -> Unit, modifier: Modifier = Modifier
+) {
 	Column(
-		modifier = Modifier
+		modifier = modifier
 			.fillMaxSize()
 			.padding(24.dp),
 		horizontalAlignment = Alignment.CenterHorizontally,
@@ -42,15 +54,23 @@ fun WelcomeScreen(viewModel: WelcomeViewModel) {
 		Spacer(modifier = Modifier.weight(1f))
 
 		Button(
-			onClick = { viewModel.onSignInClick() }, modifier = Modifier.fillMaxWidth()
+			onClick = onSignInClick, modifier = Modifier.fillMaxWidth()
 		) {
 			Text(text = "Sign In", modifier = Modifier.padding(vertical = 8.dp))
 		}
 		Spacer(modifier = Modifier.height(16.dp))
 		FilledTonalButton(
-			onClick = { viewModel.onSignUpClick() }, modifier = Modifier.fillMaxWidth()
+			onClick = onSignUpClick, modifier = Modifier.fillMaxWidth()
 		) {
 			Text(text = "Sign Up", modifier = Modifier.padding(vertical = 8.dp))
 		}
+	}
+}
+
+@ThemePreview
+@Composable
+fun WelcomeScreenPreview() {
+	PreviewScreen {
+		WelcomeContent(onSignInClick = {}, onSignUpClick = {})
 	}
 }

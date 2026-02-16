@@ -1,14 +1,20 @@
 package com.chakornk.unspot.ui.theme
 
+import android.content.res.Configuration
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 
 private val DarkColorScheme = darkColorScheme()
 
@@ -18,7 +24,8 @@ private val LightColorScheme = lightColorScheme()
 fun UnspotTheme(
 	darkTheme: Boolean = isSystemInDarkTheme(),
 	// Dynamic color is available on Android 12+
-	dynamicColor: Boolean = true, content: @Composable () -> Unit
+	dynamicColor: Boolean = false,
+	content: @Composable () -> Unit
 ) {
 	val colorScheme = when {
 		dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -33,4 +40,19 @@ fun UnspotTheme(
 	MaterialTheme(
 		colorScheme = colorScheme, content = content
 	)
+}
+
+@Preview(name = "light", showBackground = true)
+@Preview(name = "dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+annotation class ThemePreview
+
+@Composable
+fun PreviewScreen(content: @Composable () -> Unit) {
+	UnspotTheme {
+		Scaffold { padding ->
+			Box(modifier = Modifier.padding(padding)) {
+				content()
+			}
+		}
+	}
 }
