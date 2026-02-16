@@ -1,6 +1,5 @@
 package com.chakornk.unspot
 
-
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -35,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import com.chakornk.unspot.gecko.WebExtensionManager
 import com.chakornk.unspot.ui.auth.AuthViewModel
 import com.chakornk.unspot.ui.auth.LoginScreen
+import com.chakornk.unspot.ui.components.LoadingScreen
 import com.chakornk.unspot.ui.home.HomeScreen
 import com.chakornk.unspot.ui.library.LibraryScreen
 import com.chakornk.unspot.ui.navigation.Tab
@@ -51,7 +51,6 @@ import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.StorageController
 import org.mozilla.geckoview.WebExtension
-
 
 @Composable
 fun SpotifyWebView(authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager) {
@@ -136,85 +135,94 @@ class MainActivity : ComponentActivity() {
 			val context = LocalContext.current
 
 			UnspotTheme {
-				Scaffold(
-					modifier = Modifier.fillMaxSize(), bottomBar = {
-						if (isLoggedIn && !isCheckingAuth) {
-							NavigationBar {
-								val navBackStackEntry by navController.currentBackStackEntryAsState()
-								val currentRoute = navBackStackEntry?.destination?.route
+				Box(modifier = Modifier.fillMaxSize()) {
+					// Always keep SpotifyWebView active in the background to handle page loading and auth checks
+					Box(modifier = Modifier.alpha(0f)) {
+						SpotifyWebView(authViewModel, webExtensionManager)
+					}
 
-								tabs.forEach { tab ->
-									NavigationBarItem(
-										icon = {
-											Icon(
-												if (currentRoute == tab.route) tab.iconSelected else tab.icon,
-												tab.label
-											)
-										},
-										label = { Text(tab.label) },
-										selected = currentRoute == tab.route,
-										onClick = {
-											navController.navigate(tab.route) {
-												popUpTo(navController.graph.startDestinationId) {
-													saveState = true
-												}
-												launchSingleTop = true
-												restoreState = true
-											}
-										})
-								}
-							}
+					if (isCheckingAuth) {
+						Scaffold() {
+							LoadingScreen()
 						}
-					}) { innerPadding ->
-					Box(modifier = Modifier.padding(innerPadding)) {
-						Box(modifier = Modifier.alpha(0f)) {
-							SpotifyWebView(authViewModel, webExtensionManager)
-						}
+					} else {
+						Scaffold(
+							modifier = Modifier.fillMaxSize(), bottomBar = {
+								if (isLoggedIn) {
+									NavigationBar {
+										val navBackStackEntry by navController.currentBackStackEntryAsState()
+										val currentRoute = navBackStackEntry?.destination?.route
 
-						NavHost(
-							navController = navController,
-							startDestination = if (isLoggedIn) View.Home.route else View.Welcome.route,
-							enterTransition = {
-								fadeIn(tween(300)) + scaleIn(
-									initialScale = 0.92f, animationSpec = tween(300)
-								)
-							},
-							exitTransition = {
-								fadeOut(tween(90))
-							},
-							popEnterTransition = {
-								fadeIn(tween(300)) + scaleIn(
-									initialScale = 0.92f, animationSpec = tween(300)
-								)
-							},
-							popExitTransition = {
-								fadeOut(tween(90))
-							}) {
-							composable(View.Welcome.route) {
-								LaunchedEffect(Unit) {
-									welcomeViewModel.events.collect { event ->
-										when (event) {
-											is WelcomeViewModel.WelcomeEvent.NavigateToLogin -> {
-												navController.navigate(event.route)
-											}
-
-											is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
-												val intent = Intent(
-													Intent.ACTION_VIEW, Uri.parse(event.url)
-												)
-												context.startActivity(intent)
-											}
+										tabs.forEach { tab ->
+											NavigationBarItem(
+												icon = {
+													Icon(
+														if (currentRoute == tab.route) tab.iconSelected else tab.icon,
+														tab.label
+													)
+												},
+												label = { Text(tab.label) },
+												selected = currentRoute == tab.route,
+												onClick = {
+													navController.navigate(tab.route) {
+														popUpTo(navController.graph.startDestinationId) {
+															saveState = true
+														}
+														launchSingleTop = true
+														restoreState = true
+													}
+												})
 										}
 									}
 								}
-								WelcomeScreen(viewModel = welcomeViewModel)
+							}) { innerPadding ->
+							Box(modifier = Modifier.padding(innerPadding)) {
+								NavHost(
+									navController = navController,
+									startDestination = if (isLoggedIn) View.Home.route else View.Welcome.route,
+									enterTransition = {
+										fadeIn(tween(300)) + scaleIn(
+											initialScale = 0.92f, animationSpec = tween(300)
+										)
+									},
+									exitTransition = {
+										fadeOut(tween(90))
+									},
+									popEnterTransition = {
+										fadeIn(tween(300)) + scaleIn(
+											initialScale = 0.92f, animationSpec = tween(300)
+										)
+									},
+									popExitTransition = {
+										fadeOut(tween(90))
+									}) {
+									composable(View.Welcome.route) {
+										LaunchedEffect(Unit) {
+											welcomeViewModel.events.collect { event ->
+												when (event) {
+													is WelcomeViewModel.WelcomeEvent.NavigateToLogin -> {
+														navController.navigate(event.route)
+													}
+
+													is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
+														val intent = Intent(
+															Intent.ACTION_VIEW, Uri.parse(event.url)
+														)
+														context.startActivity(intent)
+													}
+												}
+											}
+										}
+										WelcomeScreen(viewModel = welcomeViewModel)
+									}
+									composable(View.Login.route) {
+										LoginScreen(viewModel = authViewModel)
+									}
+									composable(View.Home.route) { HomeScreen() }
+									composable(View.Search.route) { SearchScreen() }
+									composable(View.Library.route) { LibraryScreen() }
+								}
 							}
-							composable(View.Login.route) {
-								LoginScreen(viewModel = authViewModel)
-							}
-							composable(View.Home.route) { HomeScreen() }
-							composable(View.Search.route) { SearchScreen() }
-							composable(View.Library.route) { LibraryScreen() }
 						}
 					}
 				}
@@ -222,4 +230,3 @@ class MainActivity : ComponentActivity() {
 		}
 	}
 }
-
