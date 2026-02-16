@@ -1,4 +1,4 @@
-package com.chakornk.unspot.ui.screens
+package com.chakornk.unspot.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun LoginScreen(onLoginClick: (String, String) -> Unit) {
+fun LoginScreen(viewModel: AuthViewModel) {
 	var email by remember { mutableStateOf("") }
 	var password by remember { mutableStateOf("") }
 
@@ -76,10 +76,11 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
 		Spacer(modifier = Modifier.weight(1f))
 
 		Button(
-			onClick = { onLoginClick(email, password) },
+			onClick = { viewModel.login(email, password) },
 			modifier = Modifier.fillMaxWidth(),
 		) {
 			Text(text = "Log In", modifier = Modifier.padding(vertical = 8.dp))
 		}
 	}
 }
+

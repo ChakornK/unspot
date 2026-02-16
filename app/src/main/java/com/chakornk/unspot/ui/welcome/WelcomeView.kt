@@ -1,4 +1,4 @@
-package com.chakornk.unspot.ui.screens
+package com.chakornk.unspot.ui.welcome
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun WelcomeScreen(onSignInClick: () -> Unit, onSignUpClick: () -> Unit) {
+fun WelcomeScreen(viewModel: WelcomeViewModel) {
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
@@ -42,15 +42,13 @@ fun WelcomeScreen(onSignInClick: () -> Unit, onSignUpClick: () -> Unit) {
 		Spacer(modifier = Modifier.weight(1f))
 
 		Button(
-			onClick = onSignInClick,
-			modifier = Modifier.fillMaxWidth()
+			onClick = { viewModel.onSignInClick() }, modifier = Modifier.fillMaxWidth()
 		) {
 			Text(text = "Sign In", modifier = Modifier.padding(vertical = 8.dp))
 		}
 		Spacer(modifier = Modifier.height(16.dp))
 		FilledTonalButton(
-			onClick = onSignUpClick,
-			modifier = Modifier.fillMaxWidth()
+			onClick = { viewModel.onSignUpClick() }, modifier = Modifier.fillMaxWidth()
 		) {
 			Text(text = "Sign Up", modifier = Modifier.padding(vertical = 8.dp))
 		}

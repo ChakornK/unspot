@@ -1,4 +1,4 @@
-package com.chakornk.unspot.ui.screens
+package com.chakornk.unspot.ui.library
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,11 +8,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun SearchScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Search Screen")
-    }
+fun LibraryScreen() {
+	Box(
+		modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+	) {
+		Text(text = "Library Screen")
+	}
 }
