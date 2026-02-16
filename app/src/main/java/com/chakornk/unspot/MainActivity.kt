@@ -11,10 +11,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,6 +32,13 @@ import com.chakornk.unspot.ui.screens.HomeScreen
 import com.chakornk.unspot.ui.screens.LibraryScreen
 import com.chakornk.unspot.ui.screens.SearchScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.outlined.Home
+import com.composables.icons.materialsymbols.outlined.Library_music
+import com.composables.icons.materialsymbols.outlined.Search
+import com.composables.icons.materialsymbols.outlinedfilled.Home
+import com.composables.icons.materialsymbols.outlinedfilled.Library_music
+import com.composables.icons.materialsymbols.outlinedfilled.Search
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -44,10 +47,28 @@ import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.StorageController
 
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-	object Home : Screen("home", "Home", Icons.Rounded.Home)
-	object Search : Screen("search", "Search", Icons.Rounded.Search)
-	object Library : Screen("library", "Library", Icons.Rounded.LibraryMusic)
+sealed class Screen(
+	val route: String,
+	val label: String,
+	val icon: ImageVector,
+	val iconSelected: ImageVector
+) {
+	object Home :
+		Screen("home", "Home", MaterialSymbols.Outlined.Home, MaterialSymbols.OutlinedFilled.Home)
+
+	object Search : Screen(
+		"search",
+		"Search",
+		MaterialSymbols.Outlined.Search,
+		MaterialSymbols.OutlinedFilled.Search
+	)
+
+	object Library : Screen(
+		"library",
+		"Library",
+		MaterialSymbols.Outlined.Library_music,
+		MaterialSymbols.OutlinedFilled.Library_music
+	)
 }
 
 @Composable
@@ -111,7 +132,12 @@ class MainActivity : ComponentActivity() {
 
 							items.forEach { screen ->
 								NavigationBarItem(
-									icon = { Icon(screen.icon, contentDescription = screen.label) },
+									icon = {
+										Icon(
+											if (currentRoute == screen.route) screen.iconSelected else screen.icon,
+											screen.label
+										)
+									},
 									label = { Text(screen.label) },
 									selected = currentRoute == screen.route,
 									onClick = {
