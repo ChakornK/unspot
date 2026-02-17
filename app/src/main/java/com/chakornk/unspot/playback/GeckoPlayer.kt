@@ -3,6 +3,9 @@ package com.chakornk.unspot.playback
 import android.os.Looper
 import android.util.Log
 import androidx.core.net.toUri
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC
+import androidx.media3.common.C.USAGE_MEDIA
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -37,7 +40,10 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 			isCurrentlyPlaying, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
 		).setPlaybackState(
 			if (playlistPlaceholder.isNotEmpty()) STATE_READY else STATE_IDLE
-		).setContentPositionMs(currentPosition).build()
+		).setContentPositionMs(currentPosition).setAudioAttributes(
+			AudioAttributes.Builder().setContentType(AUDIO_CONTENT_TYPE_MUSIC).setUsage(USAGE_MEDIA)
+				.build()
+		).build()
 	}
 
 	fun updateMediaItem(

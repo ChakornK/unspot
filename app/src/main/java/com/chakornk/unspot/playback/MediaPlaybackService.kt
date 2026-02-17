@@ -1,12 +1,16 @@
 package com.chakornk.unspot.playback
 
+import android.app.PendingIntent
+import android.content.Intent
 import android.os.Bundle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
+import com.chakornk.unspot.MainActivity
 import com.chakornk.unspot.UnspotApplication
 import com.chakornk.unspot.ui.playback.PlaybackModel
 import com.google.common.collect.ImmutableList
@@ -27,6 +31,10 @@ class MediaPlaybackService : MediaSessionService() {
 	@UnstableApi
 	override fun onCreate() {
 		super.onCreate()
+		setMediaNotificationProvider(
+			DefaultMediaNotificationProvider(this)
+		)
+
 		val favoriteButton =
 			CommandButton.Builder(CommandButton.ICON_HEART_UNFILLED).setDisplayName("Save to favorites")
 				.setSessionCommand(customCommandFavorites).build()
@@ -55,9 +63,13 @@ class MediaPlaybackService : MediaSessionService() {
 			}
 		}
 
-		// Build the session with a custom layout.
-		mediaSession = MediaSession.Builder(this, player).setCallback(MyCallback())
-			.setMediaButtonPreferences(ImmutableList.of(favoriteButton)).build()
+		val intent = Intent(this, MainActivity::class.java)
+		val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+		mediaSession =
+			MediaSession.Builder(this, player).setSessionActivity(pendingIntent).setId("unspot")
+				.setCallback(MyCallback()).setMediaButtonPreferences(ImmutableList.of(favoriteButton))
+				.build()
 	}
 
 	override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession {
