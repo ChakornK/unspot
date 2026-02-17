@@ -1,5 +1,7 @@
 const ipc = browser.runtime.connectNative("browser");
 
+let npb = document.querySelector("aside");
+
 function typeText(input, text) {
   input.focus();
   const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
@@ -28,7 +30,29 @@ function typeText(input, text) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function getIsPlaying(npb) {
+function getPlaybackState() {
+  if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
+
+  const title = npb.querySelector("div[data-testid='context-item-info-title'] a")?.innerText ?? "";
+  const artist = npb.querySelector("div[data-testid='context-item-info-subtitles'] a")?.innerText ?? "";
+  const albumArtSm = npb.querySelector("button[data-testid='cover-art-button'] img")?.src ?? "";
+  const albumArt = albumArtSm.replace(/(?<=0000)[0-9a-f]{4}/, "b273");
+  const isPlaying = getIsPlaying();
+
+  const playProgressBar = npb.querySelector("div[data-testid='playback-progressbar'] input");
+  const currentTime = +playProgressBar?.value ?? 0;
+  const totalTime = +playProgressBar?.max ?? 0;
+
+  return {
+    title,
+    artist,
+    albumArt,
+    isPlaying,
+    currentTime,
+    totalTime,
+  };
+}
+function getIsPlaying() {
   const playpause = npb.querySelector("button[data-testid='control-button-playpause'] svg > path");
   if (!playpause) return false;
   return playpause.getAttribute("d")?.toLowerCase()?.match(/z/g)?.length === 2;
@@ -57,39 +81,27 @@ const handlers = {
     }
     return { success: false, error: "Inputs not found" };
   },
-  getPlaybackState: () => {
-    const npb = document.querySelector("aside");
-    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-
-    const title = npb.querySelector("div[data-testid='context-item-info-title'] a")?.innerText ?? "";
-    const artist = npb.querySelector("div[data-testid='context-item-info-subtitles'] a")?.innerText ?? "";
-    const albumArt = npb.querySelector("button[data-testid='cover-art-button'] img")?.src ?? "";
-    const fillResAlbumArt = albumArt.replace(/(?<=0000)[0-9a-f]{4}/, "b273");
-    const isPlaying = getIsPlaying(npb);
-
-    return {
-      title,
-      artist,
-      albumArt: fillResAlbumArt,
-      isPlaying,
-    };
-  },
   togglePlayback: () => {
-    const npb = document.querySelector("aside");
     if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
     npb.querySelector("button[data-testid='control-button-playpause']").click();
-    return { success: true, isPlaying: getIsPlaying(npb) };
+
+    return { success: true };
   },
   skipTrack: () => {
-    const npb = document.querySelector("aside");
     if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
     npb.querySelector("button[data-testid='control-button-skip-forward']").click();
     return { success: true };
   },
   previousTrack: () => {
-    const npb = document.querySelector("aside");
     if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
     npb.querySelector("button[data-testid='control-button-skip-back']").click();
+    return { success: true };
+  },
+  setPlaybackPosition: (data) => {
+    const { position } = data;
+    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
+    npb.querySelector("div[data-testid='playback-progressbar'] input").value = position;
+    npb.querySelector("div[data-testid='playback-progressbar'] input").dispatchEvent(new Event("input", { bubbles: true }));
     return { success: true };
   },
 };
@@ -109,8 +121,15 @@ ipc.onMessage.addListener((message) => {
   }
 });
 
-// Periodically poll for playback state
-setInterval(() => {
-  const state = handlers.getPlaybackState();
+const npbObserver = new MutationObserver(() => {
+  const state = getPlaybackState();
   ipc.postMessage({ type: "playbackStateUpdate", data: state });
-}, 1000);
+});
+const npbFinder = new MutationObserver(() => {
+  npb = document.querySelector("aside");
+  if (npb) {
+    npbObserver.observe(npb, { childList: true, subtree: true, attributes: true });
+    npbFinder.disconnect();
+  }
+});
+npbFinder.observe(document.documentElement, { childList: true, subtree: true });

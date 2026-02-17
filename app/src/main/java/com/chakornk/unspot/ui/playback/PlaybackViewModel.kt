@@ -11,7 +11,9 @@ data class PlaybackState(
 	val title: String = "",
 	val artist: String = "",
 	val albumArt: String = "",
-	val isPlaying: Boolean = false
+	val isPlaying: Boolean = false,
+	val currentTime: Long = 0L,
+	val totalTime: Long = 0L,
 )
 
 class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : BaseGeckoViewModel() {
@@ -31,7 +33,9 @@ class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : Ba
 			title = data.optString("title", ""),
 			artist = data.optString("artist", ""),
 			albumArt = data.optString("albumArt", ""),
-			isPlaying = data.optBoolean("isPlaying", false)
+			isPlaying = data.optBoolean("isPlaying", false),
+			currentTime = data.optLong("currentTime", 0L),
+			totalTime = data.optLong("totalTime", 0L)
 		)
 	}
 

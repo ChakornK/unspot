@@ -22,9 +22,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -137,7 +139,34 @@ private fun FullPlayer(
 				overflow = TextOverflow.Ellipsis
 			)
 
-			Spacer(modifier = Modifier.height(48.dp))
+			Spacer(modifier = Modifier.height(32.dp))
+
+			Column(modifier = Modifier.fillMaxWidth()) {
+				Slider(
+					value = state.currentTime / state.totalTime.toFloat(),
+					onValueChange = { },
+					modifier = Modifier.fillMaxWidth()
+				)
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = 4.dp),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Text(
+						text = formatTime(state.currentTime / 1000),
+						style = MaterialTheme.typography.labelSmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+					Text(
+						text = formatTime(state.totalTime / 1000),
+						style = MaterialTheme.typography.labelSmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+			}
+
+			Spacer(modifier = Modifier.height(32.dp))
 
 			IconButton(
 				onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
@@ -176,71 +205,91 @@ private fun NowPlayingBar(
 		shape = RoundedCornerShape(8.dp),
 		tonalElevation = 8.dp
 	) {
-		Row(
-			verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)
-		) {
-			AsyncImage(
-				model = state.albumArt,
-				contentDescription = "Album Art",
-				modifier = Modifier
-					.size(48.dp)
-					.clip(RoundedCornerShape(4.dp))
-					.background(MaterialTheme.colorScheme.surfaceContainer),
-				contentScale = ContentScale.Crop
-			)
-
-			Column(
+		Column {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
 				modifier = Modifier
 					.weight(1f)
-					.padding(horizontal = 12.dp)
+					.padding(horizontal = 8.dp)
 			) {
-				Text(
-					text = state.title, style = MaterialTheme.typography.bodyMedium.copy(
-						fontWeight = FontWeight.Bold, fontSize = 14.sp
-					), maxLines = 1, overflow = TextOverflow.Ellipsis
+				AsyncImage(
+					model = state.albumArt,
+					contentDescription = "Album Art",
+					modifier = Modifier
+						.size(48.dp)
+						.clip(RoundedCornerShape(4.dp))
+						.background(MaterialTheme.colorScheme.surfaceContainer),
+					contentScale = ContentScale.Crop
 				)
-				Text(
-					text = state.artist,
-					style = MaterialTheme.typography.bodySmall.copy(
-						fontSize = 12.sp
-					),
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
 
-			IconButton(onClick = onTogglePlayback) {
-				Icon(
-					imageVector = if (state.isPlaying) {
-						MaterialSymbols.OutlinedFilled.Pause
-					} else {
-						MaterialSymbols.OutlinedFilled.Play_arrow
-					}, contentDescription = if (state.isPlaying) "Pause" else "Play"
-				)
+				Column(
+					modifier = Modifier
+						.weight(1f)
+						.padding(horizontal = 12.dp)
+				) {
+					Text(
+						text = state.title, style = MaterialTheme.typography.bodyMedium.copy(
+							fontWeight = FontWeight.Bold, fontSize = 14.sp
+						), maxLines = 1, overflow = TextOverflow.Ellipsis
+					)
+					Text(
+						text = state.artist,
+						style = MaterialTheme.typography.bodySmall.copy(
+							fontSize = 12.sp
+						),
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+
+				IconButton(onClick = onTogglePlayback) {
+					Icon(
+						imageVector = if (state.isPlaying) {
+							MaterialSymbols.OutlinedFilled.Pause
+						} else {
+							MaterialSymbols.OutlinedFilled.Play_arrow
+						}, contentDescription = if (state.isPlaying) "Pause" else "Play"
+					)
+				}
 			}
+			LinearProgressIndicator(
+				progress = { state.currentTime / state.totalTime.toFloat() },
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(2.dp),
+				trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+			)
 		}
 	}
+}
+
+private fun formatTime(seconds: Long): String {
+	val minutes = seconds / 60
+	val remainingSeconds = seconds % 60
+	return "%d:%02d".format(minutes, remainingSeconds)
 }
 
 @ThemePreview
 @Composable
 fun FullPlayerPreview() {
 	PreviewScreen(bottomBar = {
-			FullPlayer(
-				state = PlaybackState(
-					title = "Song Title",
-					artist = "Artist Name",
-					albumArt = "",
-					isPlaying = false,
-				),
-				onCollapse = {},
-				onTogglePlayback = {},
-				sheetState = SheetState(
-					skipPartiallyExpanded = true,
-					positionalThreshold = { 0f },
-					velocityThreshold = { 0f })
-			)
+		FullPlayer(
+			state = PlaybackState(
+			title = "Song Title",
+			artist = "Artist Name",
+			albumArt = "",
+			isPlaying = false,
+			currentTime = 30000,
+			totalTime = 210000,
+		),
+			onCollapse = {},
+			onTogglePlayback = {},
+			sheetState = SheetState(
+				skipPartiallyExpanded = true,
+				positionalThreshold = { 0f },
+				velocityThreshold = { 0f })
+		)
 	}) {}
 }
 
@@ -254,6 +303,8 @@ fun PlayerViewPreview() {
 			artist = "Artist Name",
 			albumArt = "",
 			isPlaying = false,
+			currentTime = 30000,
+			totalTime = 210000,
 		), onToggleExpanded = {}, onTogglePlayback = {}, isExpanded = false
 		)
 	}
