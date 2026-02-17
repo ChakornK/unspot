@@ -50,7 +50,6 @@ import com.chakornk.unspot.ui.welcome.WelcomeScreen
 import com.chakornk.unspot.ui.welcome.WelcomeViewModel
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
-import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
@@ -58,18 +57,15 @@ import org.mozilla.geckoview.StorageController
 import org.mozilla.geckoview.WebExtension
 
 @Composable
-fun SpotifyWebView(authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager) {
-	val context = LocalContext.current
-
-	val runtimeSettings = GeckoRuntimeSettings.Builder().remoteDebuggingEnabled(true)
-		.arguments(arrayOf("--start-debugger-server", "9222")).build()
+fun SpotifyWebView(
+	runtime: GeckoRuntime, authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager
+) {
 	val sessionSettings = GeckoSessionSettings.Builder().usePrivateMode(false)
 		.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 		.userAgentMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
 		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0")
 		.useTrackingProtection(false).suspendMediaWhenInactive(false).build()
 
-	val runtime = remember { GeckoRuntime.create(context, runtimeSettings) }
 	val session = remember { GeckoSession(sessionSettings) }
 
 	// fix service worker glitch
@@ -101,7 +97,7 @@ fun SpotifyWebView(authViewModel: AuthViewModel, webExtensionManager: WebExtensi
 				override fun onContentPermissionRequest(
 					session: GeckoSession, perm: GeckoSession.PermissionDelegate.ContentPermission
 				): GeckoResult<Int>? {
-					return if (perm.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS) {
+					return if (perm.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS || perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE) {
 						GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW)
 					} else null
 				}
@@ -121,6 +117,8 @@ fun SpotifyWebView(authViewModel: AuthViewModel, webExtensionManager: WebExtensi
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
+
+		val geckoRuntime = (application as UnspotApplication).geckoRuntime
 
 		setContent {
 			val navController = rememberNavController()
@@ -147,7 +145,7 @@ class MainActivity : ComponentActivity() {
 				Box(modifier = Modifier.fillMaxSize()) {
 					// Always keep SpotifyWebView active in the background to handle page loading and auth checks
 					Box(modifier = Modifier.alpha(0f)) {
-						SpotifyWebView(authViewModel, webExtensionManager)
+						SpotifyWebView(geckoRuntime, authViewModel, webExtensionManager)
 					}
 
 					if (isCheckingAuth) {
