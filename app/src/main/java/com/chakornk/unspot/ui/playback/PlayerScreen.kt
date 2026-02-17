@@ -200,9 +200,9 @@ private fun NowPlayingBar(
 			.fillMaxWidth()
 			.height(80.dp)
 			.padding(8.dp)
+			.clip(RoundedCornerShape(8.dp))
 			.clickable { onClick() },
 		color = MaterialTheme.colorScheme.surfaceContainerHigh,
-		shape = RoundedCornerShape(8.dp),
 		tonalElevation = 8.dp
 	) {
 		Column {
