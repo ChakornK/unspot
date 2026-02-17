@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -46,9 +47,9 @@ fun UnspotTheme(
 annotation class ThemePreview
 
 @Composable
-fun PreviewScreen(content: @Composable () -> Unit) {
+fun PreviewScreen(bottomBar: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
 	UnspotTheme {
-		Scaffold { padding ->
+		Scaffold(bottomBar = bottomBar, modifier = Modifier.fillMaxSize()) { padding ->
 			Box(modifier = Modifier.padding(padding)) {
 				content()
 			}

@@ -21,7 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
@@ -40,8 +42,8 @@ import com.chakornk.unspot.ui.home.HomeScreen
 import com.chakornk.unspot.ui.library.LibraryScreen
 import com.chakornk.unspot.ui.navigation.Tab
 import com.chakornk.unspot.ui.navigation.View
-import com.chakornk.unspot.ui.playback.NowPlayingBar
 import com.chakornk.unspot.ui.playback.PlaybackViewModel
+import com.chakornk.unspot.ui.playback.PlayerView
 import com.chakornk.unspot.ui.search.SearchScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.chakornk.unspot.ui.welcome.WelcomeScreen
@@ -133,6 +135,8 @@ class MainActivity : ComponentActivity() {
 			val isLoggedIn = authViewModel.isLoggedIn
 			val isCheckingAuth = authViewModel.isCheckingAuth
 
+			var isPlayerExpanded by remember { mutableStateOf(false) }
+
 			val tabs = listOf(
 				Tab.Home, Tab.Search, Tab.Library
 			)
@@ -155,9 +159,12 @@ class MainActivity : ComponentActivity() {
 							modifier = Modifier.fillMaxSize(), bottomBar = {
 								if (isLoggedIn) {
 									Column {
-										NowPlayingBar(
+										PlayerView(
 											state = playbackViewModel.playbackState,
-											onTogglePlayback = { playbackViewModel.togglePlayback() })
+											onTogglePlayback = { playbackViewModel.togglePlayback() },
+											onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
+											isExpanded = isPlayerExpanded
+										)
 										NavigationBar {
 											val navBackStackEntry by navController.currentBackStackEntryAsState()
 											val currentRoute = navBackStackEntry?.destination?.route
@@ -235,6 +242,7 @@ class MainActivity : ComponentActivity() {
 							}
 						}
 					}
+
 				}
 			}
 		}
