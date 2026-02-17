@@ -180,17 +180,18 @@ private fun SwipeIndicator(
 	) {
 		Box(
 			modifier = Modifier
-				.requiredSize((100 + (offset.absoluteValue / 4f)).dp)
-				.offset(x = if (isSkip) (80 + (64 * (1 - progress))).dp else (-80 - (64 * (1 - progress))).dp)
+				.requiredSize((140 + (offset.absoluteValue / 4f)).dp)
+				.offset(x = ((if (isSkip) 1 else -1) * (80 + (64 * (1 - progress)) + (offset.absoluteValue / 8f))).dp)
 				.background(
 					color = backgroundColor, shape = CircleShape
-				), contentAlignment = Alignment.Center
+				)
+				.align(Alignment.Center), contentAlignment = Alignment.Center
 		) {}
 		Box(
 			modifier = modifier
 				.fillMaxHeight()
 				.width(64.dp)
-				.offset(x = if (isSkip) (64 * (1 - progress)).dp else (-(64 * (1 - progress))).dp),
+				.offset(x = ((if (isSkip) 1 else -1) * 64 * (1 - progress)).dp),
 			contentAlignment = Alignment.Center
 		) {
 			Icon(
@@ -222,118 +223,124 @@ private fun FullPlayer(
 		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
 		modifier = Modifier.windowInsetsPadding(WindowInsets(top = 64.dp))
 	) {
-		Box(
-			modifier = Modifier.swipeToSkip(
-				onSkip = onSkipTrack, onPrevious = onPreviousTrack
-			) { swipeOffset = it }) {
-			if (swipeOffset > 0) {
-				SwipeIndicator(
-					offset = swipeOffset,
-					threshold = threshold,
-					modifier = Modifier.align(Alignment.CenterStart)
-				)
-			} else if (swipeOffset < 0) {
-				SwipeIndicator(
-					offset = swipeOffset,
-					threshold = threshold,
-					modifier = Modifier.align(Alignment.CenterEnd)
-				)
-			}
 
-			Column(modifier = Modifier
+		Column(
+			modifier = Modifier
 				.fillMaxSize()
-				.offset { IntOffset(swipeOffset.roundToInt(), 0) }
 				.verticalScroll(rememberScrollState())
 				.padding(horizontal = 24.dp, vertical = 12.dp),
-				horizontalAlignment = Alignment.CenterHorizontally) {
-				Row(
-					modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
-				) {
-					IconButton(onClick = onCollapse) {
-						Icon(
-							imageVector = MaterialSymbols.OutlinedFilled.Keyboard_arrow_down,
-							contentDescription = "Close"
-						)
-					}
-				}
-
-				Spacer(modifier = Modifier.height(24.dp))
-
-				AsyncImage(
-					model = state.albumArt,
-					contentDescription = "Album Art",
-					modifier = Modifier
-						.fillMaxWidth()
-						.aspectRatio(1f)
-						.clip(RoundedCornerShape(12.dp))
-						.background(MaterialTheme.colorScheme.surfaceContainer),
-					contentScale = ContentScale.Crop
-				)
-
-				Spacer(modifier = Modifier.height(48.dp))
-
-				Text(
-					text = state.title, style = MaterialTheme.typography.headlineMedium.copy(
-						fontWeight = FontWeight.Bold
-					), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis
-				)
-
-				Text(
-					text = state.artist,
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					textAlign = TextAlign.Center,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis
-				)
-
-				Spacer(modifier = Modifier.height(32.dp))
-
-				Column(modifier = Modifier.fillMaxWidth()) {
-					Slider(
-						value = if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f,
-						onValueChange = { },
-						modifier = Modifier.fillMaxWidth()
+			horizontalAlignment = Alignment.CenterHorizontally
+		) {
+			Row(
+				modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
+			) {
+				IconButton(onClick = onCollapse) {
+					Icon(
+						imageVector = MaterialSymbols.OutlinedFilled.Keyboard_arrow_down,
+						contentDescription = "Close"
 					)
-					Row(
+				}
+			}
+
+			Spacer(modifier = Modifier.height(24.dp))
+
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.swipeToSkip(
+						onSkip = onSkipTrack, onPrevious = onPreviousTrack
+					) { swipeOffset = it }) {
+				if (swipeOffset > 0) {
+					SwipeIndicator(
+						offset = swipeOffset,
+						threshold = threshold,
+						modifier = Modifier.align(Alignment.CenterStart)
+					)
+				} else if (swipeOffset < 0) {
+					SwipeIndicator(
+						offset = swipeOffset,
+						threshold = threshold,
+						modifier = Modifier.align(Alignment.CenterEnd)
+					)
+				}
+				Box(modifier = Modifier.offset { IntOffset(swipeOffset.roundToInt(), 0) }) {
+					AsyncImage(
+						model = state.albumArt,
+						contentDescription = "Album Art",
 						modifier = Modifier
 							.fillMaxWidth()
-							.padding(horizontal = 4.dp),
-						horizontalArrangement = Arrangement.SpaceBetween
-					) {
-						Text(
-							text = formatTime(state.currentTime / 1000),
-							style = MaterialTheme.typography.labelSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-						Text(
-							text = formatTime(state.totalTime / 1000),
-							style = MaterialTheme.typography.labelSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-					}
-				}
-
-				Spacer(modifier = Modifier.height(32.dp))
-
-				IconButton(
-					onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
-				) {
-					Icon(
-						imageVector = if (state.isPlaying) {
-							MaterialSymbols.OutlinedFilled.Pause_circle
-						} else {
-							MaterialSymbols.OutlinedFilled.Play_circle
-						},
-						contentDescription = if (state.isPlaying) "Pause" else "Play",
-						modifier = Modifier.fillMaxSize(),
-						tint = MaterialTheme.colorScheme.primary
+							.aspectRatio(1f)
+							.clip(RoundedCornerShape(12.dp))
+							.background(MaterialTheme.colorScheme.surfaceContainer),
+						contentScale = ContentScale.Crop
 					)
 				}
-
-				Spacer(modifier = Modifier.height(48.dp))
 			}
+
+			Spacer(modifier = Modifier.height(48.dp))
+
+			Text(
+				text = state.title, style = MaterialTheme.typography.headlineMedium.copy(
+					fontWeight = FontWeight.Bold
+				), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis
+			)
+
+			Text(
+				text = state.artist,
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				textAlign = TextAlign.Center,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis
+			)
+
+			Spacer(modifier = Modifier.height(32.dp))
+
+			Column(modifier = Modifier.fillMaxWidth()) {
+				Slider(
+					value = if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f,
+					onValueChange = { },
+					modifier = Modifier.fillMaxWidth()
+				)
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = 4.dp),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Text(
+						text = formatTime(state.currentTime / 1000),
+						style = MaterialTheme.typography.labelSmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+					Text(
+						text = formatTime(state.totalTime / 1000),
+						style = MaterialTheme.typography.labelSmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+			}
+
+			Spacer(modifier = Modifier.height(32.dp))
+
+			IconButton(
+				onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
+			) {
+				Icon(
+					imageVector = if (state.isPlaying) {
+						MaterialSymbols.OutlinedFilled.Pause_circle
+					} else {
+						MaterialSymbols.OutlinedFilled.Play_circle
+					},
+					contentDescription = if (state.isPlaying) "Pause" else "Play",
+					modifier = Modifier.fillMaxSize(),
+					tint = MaterialTheme.colorScheme.primary
+				)
+			}
+
+			Spacer(modifier = Modifier.height(48.dp))
 		}
+
 	}
 }
 
