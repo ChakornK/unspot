@@ -40,8 +40,8 @@ function getPlaybackState() {
   const isPlaying = getIsPlaying();
 
   const playProgressBar = npb.querySelector("div[data-testid='playback-progressbar'] input");
-  const currentTime = +playProgressBar?.value ?? 0;
-  const totalTime = +playProgressBar?.max ?? 0;
+  const currentTime = +playProgressBar?.getAttribute("value") ?? 0;
+  const totalTime = +playProgressBar?.getAttribute("max") ?? 0;
 
   return {
     title,
