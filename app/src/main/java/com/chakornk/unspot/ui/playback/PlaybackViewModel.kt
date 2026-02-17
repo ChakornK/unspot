@@ -42,4 +42,12 @@ class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : Ba
 	fun togglePlayback() {
 		sendMessage(model.togglePlaybackMessage)
 	}
+
+	fun skipTrack() {
+		sendMessage(model.skipTrackMessage)
+	}
+
+	fun previousTrack() {
+		sendMessage(model.previousTrackMessage)
+	}
 }

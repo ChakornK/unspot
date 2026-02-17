@@ -161,6 +161,8 @@ class MainActivity : ComponentActivity() {
 											state = playbackViewModel.playbackState,
 											onTogglePlayback = { playbackViewModel.togglePlayback() },
 											onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
+											onSkipTrack = { playbackViewModel.skipTrack() },
+											onPreviousTrack = { playbackViewModel.previousTrack() },
 											isExpanded = isPlayerExpanded
 										)
 										NavigationBar {

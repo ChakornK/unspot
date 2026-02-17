@@ -2,21 +2,30 @@
 
 package com.chakornk.unspot.ui.playback
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,13 +40,25 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -50,6 +71,10 @@ import com.composables.icons.materialsymbols.outlinedfilled.Pause
 import com.composables.icons.materialsymbols.outlinedfilled.Pause_circle
 import com.composables.icons.materialsymbols.outlinedfilled.Play_arrow
 import com.composables.icons.materialsymbols.outlinedfilled.Play_circle
+import com.composables.icons.materialsymbols.outlinedfilled.Skip_next
+import com.composables.icons.materialsymbols.outlinedfilled.Skip_previous
+import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 @Composable
 fun PlayerView(
@@ -57,7 +82,8 @@ fun PlayerView(
 	isExpanded: Boolean,
 	onToggleExpanded: () -> Unit,
 	onTogglePlayback: () -> Unit,
-	modifier: Modifier = Modifier
+	onSkipTrack: () -> Unit,
+	onPreviousTrack: () -> Unit,
 ) {
 	if (state.title.isEmpty()) return
 
@@ -67,7 +93,8 @@ fun PlayerView(
 		state = state,
 		onTogglePlayback = onTogglePlayback,
 		onClick = onToggleExpanded,
-		modifier = modifier
+		onSkipTrack = onSkipTrack,
+		onPreviousTrack = onPreviousTrack,
 	)
 
 	if (isExpanded) {
@@ -75,15 +102,119 @@ fun PlayerView(
 			state = state,
 			onCollapse = onToggleExpanded,
 			onTogglePlayback = onTogglePlayback,
+			onSkipTrack = onSkipTrack,
+			onPreviousTrack = onPreviousTrack,
 			sheetState = sheetState
 		)
 	}
 }
 
 @Composable
-private fun FullPlayer(
-	state: PlaybackState, onCollapse: () -> Unit, onTogglePlayback: () -> Unit, sheetState: SheetState
+private fun Modifier.swipeToSkip(
+	onSkip: () -> Unit, onPrevious: () -> Unit, onOffsetChange: (Float) -> Unit
+): Modifier {
+	val haptic = LocalHapticFeedback.current
+	val currentOnSkip by rememberUpdatedState(onSkip)
+	val currentOnPrevious by rememberUpdatedState(onPrevious)
+	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
+	var totalDrag by remember { mutableFloatStateOf(0f) }
+	var hasVibrated by remember { mutableStateOf(false) }
+
+	return this.pointerInput(Unit) {
+		detectHorizontalDragGestures(onDragEnd = {
+			if (totalDrag > threshold) {
+				currentOnPrevious()
+			} else if (totalDrag < -threshold) {
+				currentOnSkip()
+			}
+			totalDrag = 0f
+			onOffsetChange(0f)
+			hasVibrated = false
+		}, onDragCancel = {
+			totalDrag = 0f
+			onOffsetChange(0f)
+			hasVibrated = false
+		}, onHorizontalDrag = { change, dragAmount ->
+			change.consume()
+			totalDrag += dragAmount
+			onOffsetChange(totalDrag)
+
+			if (totalDrag.absoluteValue > threshold) {
+				if (!hasVibrated) {
+					haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+					hasVibrated = true
+				}
+			} else {
+				hasVibrated = false
+			}
+		})
+	}
+}
+
+@Composable
+private fun SwipeIndicator(
+	offset: Float, threshold: Float, modifier: Modifier = Modifier
 ) {
+	val isSkip = offset < 0
+	val progress = (offset.absoluteValue / threshold).coerceIn(0f, 1.2f)
+	val alpha by animateFloatAsState(if (offset.absoluteValue > 64f) 1f else 0f, label = "alpha")
+	val icon =
+		if (isSkip) MaterialSymbols.OutlinedFilled.Skip_next else MaterialSymbols.OutlinedFilled.Skip_previous
+	val isReached = offset.absoluteValue > threshold
+
+	val backgroundColor by animateColorAsState(
+		targetValue = if (isReached) MaterialTheme.colorScheme.secondaryContainer
+		else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f + 0.7f * progress),
+		label = "backgroundColor"
+	)
+	val contentColor by animateColorAsState(
+		targetValue = if (isReached) MaterialTheme.colorScheme.onSecondaryContainer
+		else MaterialTheme.colorScheme.onSurfaceVariant, label = "contentColor"
+	)
+
+	Box(
+		modifier = modifier
+			.fillMaxHeight()
+			.alpha(alpha),
+		contentAlignment = if (isSkip) Alignment.CenterEnd else Alignment.CenterStart
+	) {
+		Box(
+			modifier = Modifier
+				.requiredSize((100 + (offset.absoluteValue / 4f)).dp)
+				.offset(x = if (isSkip) (80 + (64 * (1 - progress))).dp else (-80 - (64 * (1 - progress))).dp)
+				.background(
+					color = backgroundColor, shape = CircleShape
+				), contentAlignment = Alignment.Center
+		) {}
+		Box(
+			modifier = modifier
+				.fillMaxHeight()
+				.width(64.dp)
+				.offset(x = if (isSkip) (64 * (1 - progress)).dp else (-(64 * (1 - progress))).dp),
+			contentAlignment = Alignment.Center
+		) {
+			Icon(
+				imageVector = icon,
+				contentDescription = null,
+				modifier = Modifier.size((24 + 8 * progress).dp),
+				tint = contentColor
+			)
+		}
+	}
+}
+
+@Composable
+private fun FullPlayer(
+	state: PlaybackState,
+	onCollapse: () -> Unit,
+	onTogglePlayback: () -> Unit,
+	onSkipTrack: () -> Unit,
+	onPreviousTrack: () -> Unit,
+	sheetState: SheetState
+) {
+	var swipeOffset by remember { mutableFloatStateOf(0f) }
+	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
+
 	ModalBottomSheet(
 		onDismissRequest = onCollapse,
 		sheetState = sheetState,
@@ -91,99 +222,117 @@ private fun FullPlayer(
 		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
 		modifier = Modifier.windowInsetsPadding(WindowInsets(top = 64.dp))
 	) {
-		Column(
-			modifier = Modifier
+		Box(
+			modifier = Modifier.swipeToSkip(
+				onSkip = onSkipTrack, onPrevious = onPreviousTrack
+			) { swipeOffset = it }) {
+			if (swipeOffset > 0) {
+				SwipeIndicator(
+					offset = swipeOffset,
+					threshold = threshold,
+					modifier = Modifier.align(Alignment.CenterStart)
+				)
+			} else if (swipeOffset < 0) {
+				SwipeIndicator(
+					offset = swipeOffset,
+					threshold = threshold,
+					modifier = Modifier.align(Alignment.CenterEnd)
+				)
+			}
+
+			Column(modifier = Modifier
 				.fillMaxSize()
+				.offset { IntOffset(swipeOffset.roundToInt(), 0) }
 				.verticalScroll(rememberScrollState())
 				.padding(horizontal = 24.dp, vertical = 12.dp),
-			horizontalAlignment = Alignment.CenterHorizontally
-		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
-			) {
-				IconButton(onClick = onCollapse) {
-					Icon(
-						imageVector = MaterialSymbols.OutlinedFilled.Keyboard_arrow_down,
-						contentDescription = "Close"
-					)
-				}
-			}
-
-			Spacer(modifier = Modifier.height(24.dp))
-
-			AsyncImage(
-				model = state.albumArt,
-				contentDescription = "Album Art",
-				modifier = Modifier
-					.fillMaxWidth()
-					.aspectRatio(1f)
-					.clip(RoundedCornerShape(12.dp))
-					.background(MaterialTheme.colorScheme.surfaceContainer),
-				contentScale = ContentScale.Crop
-			)
-
-			Spacer(modifier = Modifier.height(48.dp))
-
-			Text(
-				text = state.title, style = MaterialTheme.typography.headlineMedium.copy(
-					fontWeight = FontWeight.Bold
-				), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis
-			)
-
-			Text(
-				text = state.artist,
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				textAlign = TextAlign.Center,
-				maxLines = 1,
-				overflow = TextOverflow.Ellipsis
-			)
-
-			Spacer(modifier = Modifier.height(32.dp))
-
-			Column(modifier = Modifier.fillMaxWidth()) {
-				Slider(
-					value = state.currentTime / state.totalTime.toFloat(),
-					onValueChange = { },
-					modifier = Modifier.fillMaxWidth()
-				)
+				horizontalAlignment = Alignment.CenterHorizontally) {
 				Row(
+					modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
+				) {
+					IconButton(onClick = onCollapse) {
+						Icon(
+							imageVector = MaterialSymbols.OutlinedFilled.Keyboard_arrow_down,
+							contentDescription = "Close"
+						)
+					}
+				}
+
+				Spacer(modifier = Modifier.height(24.dp))
+
+				AsyncImage(
+					model = state.albumArt,
+					contentDescription = "Album Art",
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(horizontal = 4.dp),
-					horizontalArrangement = Arrangement.SpaceBetween
-				) {
-					Text(
-						text = formatTime(state.currentTime / 1000),
-						style = MaterialTheme.typography.labelSmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
+						.aspectRatio(1f)
+						.clip(RoundedCornerShape(12.dp))
+						.background(MaterialTheme.colorScheme.surfaceContainer),
+					contentScale = ContentScale.Crop
+				)
+
+				Spacer(modifier = Modifier.height(48.dp))
+
+				Text(
+					text = state.title, style = MaterialTheme.typography.headlineMedium.copy(
+						fontWeight = FontWeight.Bold
+					), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis
+				)
+
+				Text(
+					text = state.artist,
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					textAlign = TextAlign.Center,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis
+				)
+
+				Spacer(modifier = Modifier.height(32.dp))
+
+				Column(modifier = Modifier.fillMaxWidth()) {
+					Slider(
+						value = if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f,
+						onValueChange = { },
+						modifier = Modifier.fillMaxWidth()
 					)
-					Text(
-						text = formatTime(state.totalTime / 1000),
-						style = MaterialTheme.typography.labelSmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = 4.dp),
+						horizontalArrangement = Arrangement.SpaceBetween
+					) {
+						Text(
+							text = formatTime(state.currentTime / 1000),
+							style = MaterialTheme.typography.labelSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+						Text(
+							text = formatTime(state.totalTime / 1000),
+							style = MaterialTheme.typography.labelSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+				}
+
+				Spacer(modifier = Modifier.height(32.dp))
+
+				IconButton(
+					onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
+				) {
+					Icon(
+						imageVector = if (state.isPlaying) {
+							MaterialSymbols.OutlinedFilled.Pause_circle
+						} else {
+							MaterialSymbols.OutlinedFilled.Play_circle
+						},
+						contentDescription = if (state.isPlaying) "Pause" else "Play",
+						modifier = Modifier.fillMaxSize(),
+						tint = MaterialTheme.colorScheme.primary
 					)
 				}
+
+				Spacer(modifier = Modifier.height(48.dp))
 			}
-
-			Spacer(modifier = Modifier.height(32.dp))
-
-			IconButton(
-				onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
-			) {
-				Icon(
-					imageVector = if (state.isPlaying) {
-						MaterialSymbols.OutlinedFilled.Pause_circle
-					} else {
-						MaterialSymbols.OutlinedFilled.Play_circle
-					},
-					contentDescription = if (state.isPlaying) "Pause" else "Play",
-					modifier = Modifier.fillMaxSize(),
-					tint = MaterialTheme.colorScheme.primary
-				)
-			}
-
-			Spacer(modifier = Modifier.height(48.dp))
 		}
 	}
 }
@@ -192,74 +341,101 @@ private fun FullPlayer(
 private fun NowPlayingBar(
 	state: PlaybackState,
 	onTogglePlayback: () -> Unit,
+	onSkipTrack: () -> Unit,
+	onPreviousTrack: () -> Unit,
 	onClick: () -> Unit,
-	modifier: Modifier = Modifier
 ) {
+	var swipeOffset by remember { mutableFloatStateOf(0f) }
+	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
+
 	Surface(
-		modifier = modifier
+		modifier = Modifier
 			.fillMaxWidth()
 			.height(80.dp)
 			.padding(8.dp)
 			.clip(RoundedCornerShape(8.dp))
+			.swipeToSkip(
+				onSkip = onSkipTrack, onPrevious = onPreviousTrack
+			) { swipeOffset = it }
 			.clickable { onClick() },
 		color = MaterialTheme.colorScheme.surfaceContainerHigh,
 		tonalElevation = 8.dp
 	) {
-		Column {
-			Row(
-				verticalAlignment = Alignment.CenterVertically,
-				modifier = Modifier
-					.weight(1f)
-					.padding(horizontal = 8.dp)
-			) {
-				AsyncImage(
-					model = state.albumArt,
-					contentDescription = "Album Art",
-					modifier = Modifier
-						.size(48.dp)
-						.clip(RoundedCornerShape(4.dp))
-						.background(MaterialTheme.colorScheme.surfaceContainer),
-					contentScale = ContentScale.Crop
+		Box(modifier = Modifier.fillMaxSize()) {
+			if (swipeOffset > 0) {
+				SwipeIndicator(
+					offset = swipeOffset,
+					threshold = threshold,
+					modifier = Modifier.align(Alignment.CenterStart)
 				)
+			} else if (swipeOffset < 0) {
+				SwipeIndicator(
+					offset = swipeOffset,
+					threshold = threshold,
+					modifier = Modifier.align(Alignment.CenterEnd)
+				)
+			}
 
-				Column(
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.alpha(1 - (swipeOffset.absoluteValue / threshold).coerceIn(0f, 1f))
+					.offset { IntOffset(swipeOffset.roundToInt(), 0) }) {
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
 					modifier = Modifier
 						.weight(1f)
-						.padding(horizontal = 12.dp)
+						.padding(horizontal = 8.dp)
 				) {
-					Text(
-						text = state.title, style = MaterialTheme.typography.bodyMedium.copy(
-							fontWeight = FontWeight.Bold, fontSize = 14.sp
-						), maxLines = 1, overflow = TextOverflow.Ellipsis
+					AsyncImage(
+						model = state.albumArt,
+						contentDescription = "Album Art",
+						modifier = Modifier
+							.size(48.dp)
+							.clip(RoundedCornerShape(4.dp))
+							.background(MaterialTheme.colorScheme.surfaceContainer),
+						contentScale = ContentScale.Crop
 					)
-					Text(
-						text = state.artist,
-						style = MaterialTheme.typography.bodySmall.copy(
-							fontSize = 12.sp
-						),
-						maxLines = 1,
-						overflow = TextOverflow.Ellipsis,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
 
-				IconButton(onClick = onTogglePlayback) {
-					Icon(
-						imageVector = if (state.isPlaying) {
-							MaterialSymbols.OutlinedFilled.Pause
-						} else {
-							MaterialSymbols.OutlinedFilled.Play_arrow
-						}, contentDescription = if (state.isPlaying) "Pause" else "Play"
-					)
+					Column(
+						modifier = Modifier
+							.weight(1f)
+							.padding(horizontal = 12.dp)
+					) {
+						Text(
+							text = state.title, style = MaterialTheme.typography.bodyMedium.copy(
+								fontWeight = FontWeight.Bold, fontSize = 14.sp
+							), maxLines = 1, overflow = TextOverflow.Ellipsis
+						)
+						Text(
+							text = state.artist,
+							style = MaterialTheme.typography.bodySmall.copy(
+								fontSize = 12.sp
+							),
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+
+					IconButton(onClick = onTogglePlayback) {
+						Icon(
+							imageVector = if (state.isPlaying) {
+								MaterialSymbols.OutlinedFilled.Pause
+							} else {
+								MaterialSymbols.OutlinedFilled.Play_arrow
+							}, contentDescription = if (state.isPlaying) "Pause" else "Play"
+						)
+					}
 				}
+				LinearProgressIndicator(
+					progress = { if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f },
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(2.dp),
+					trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+				)
 			}
-			LinearProgressIndicator(
-				progress = { state.currentTime / state.totalTime.toFloat() },
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(2.dp),
-				trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-			)
 		}
 	}
 }
@@ -285,6 +461,8 @@ fun FullPlayerPreview() {
 		),
 			onCollapse = {},
 			onTogglePlayback = {},
+			onSkipTrack = {},
+			onPreviousTrack = {},
 			sheetState = SheetState(
 				skipPartiallyExpanded = true,
 				positionalThreshold = { 0f },
@@ -305,7 +483,12 @@ fun PlayerViewPreview() {
 			isPlaying = false,
 			currentTime = 30000,
 			totalTime = 210000,
-		), onToggleExpanded = {}, onTogglePlayback = {}, isExpanded = false
+		),
+			onToggleExpanded = {},
+			onTogglePlayback = {},
+			onSkipTrack = {},
+			onPreviousTrack = {},
+			isExpanded = false
 		)
 	}
 }
