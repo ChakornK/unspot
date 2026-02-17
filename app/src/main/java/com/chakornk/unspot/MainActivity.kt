@@ -1,11 +1,15 @@
 package com.chakornk.unspot
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.session.MediaController
@@ -137,6 +142,8 @@ class MainActivity : ComponentActivity() {
 //				playerView.setPlayer(controllerFuture.get())
 			}, MoreExecutors.directExecutor()
 		)
+
+		requestNotificationPermission()
 
 		setContent {
 			val navController = rememberNavController()
@@ -260,6 +267,27 @@ class MainActivity : ComponentActivity() {
 						}
 					}
 
+				}
+			}
+		}
+	}
+
+	private val requestPermissionLauncher = registerForActivityResult(
+		ActivityResultContracts.RequestPermission()
+	) { isGranted ->
+		Log.d("MainActivity", "POST_NOTIFICATIONS granted: $isGranted")
+	}
+
+	private fun requestNotificationPermission() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			when {
+				ContextCompat.checkSelfPermission(
+					this, Manifest.permission.POST_NOTIFICATIONS
+				) == PackageManager.PERMISSION_GRANTED -> {
+				}
+
+				else -> {
+					requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
 				}
 			}
 		}

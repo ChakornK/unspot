@@ -12,11 +12,17 @@ import com.chakornk.unspot.ui.playback.PlaybackModel
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class MediaPlaybackService : MediaSessionService() {
 	private val ACTION_FAVORITES = "ACTION_FAVORITES"
 	private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
-	private var mediaSession: MediaSession? = null
+	private lateinit var mediaSession: MediaSession
+	private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
 	@UnstableApi
 	override fun onCreate() {
@@ -31,13 +37,37 @@ class MediaPlaybackService : MediaSessionService() {
 		val geckoPlayer = GeckoPlayer()
 		val player = MediaCommandHandler(geckoPlayer, webExtensionManager, playbackModel)
 
+		serviceScope.launch {
+			webExtensionManager.messages.collect { message ->
+				if (message.type == playbackModel.playbackStateUpdateMessage) {
+					message.data?.let { data ->
+						val state = playbackModel.parsePlaybackState(data)
+						geckoPlayer.updateMediaItem(
+							state.isPlaying,
+							state.title,
+							state.artist,
+							state.albumArt,
+							state.currentTime,
+							state.totalTime
+						)
+					}
+				}
+			}
+		}
+
 		// Build the session with a custom layout.
 		mediaSession = MediaSession.Builder(this, player).setCallback(MyCallback())
 			.setMediaButtonPreferences(ImmutableList.of(favoriteButton)).build()
 	}
 
-	override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+	override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession {
 		return mediaSession
+	}
+
+	override fun onDestroy() {
+		mediaSession.release()
+		serviceScope.cancel()
+		super.onDestroy()
 	}
 
 	private inner class MyCallback : MediaSession.Callback {
