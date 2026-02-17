@@ -42,8 +42,8 @@ fun UnspotTheme(
 	)
 }
 
-@Preview(name = "light", showBackground = true)
-@Preview(name = "dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "light", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO, backgroundColor = 0xfef7ff)
+@Preview(name = "dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, backgroundColor = 0x141218)
 annotation class ThemePreview
 
 @Composable
