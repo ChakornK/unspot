@@ -1,6 +1,5 @@
 plugins {
 	alias(libs.plugins.android.application)
-	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.compose)
 }
 
@@ -30,9 +29,6 @@ android {
 		sourceCompatibility = JavaVersion.VERSION_17
 		targetCompatibility = JavaVersion.VERSION_17
 	}
-	kotlinOptions {
-		jvmTarget = "17"
-	}
 	buildFeatures {
 		compose = true
 	}
@@ -50,10 +46,10 @@ dependencies {
 	implementation(libs.androidx.ui)
 	implementation(libs.androidx.navigation.compose)
 	implementation(libs.androidx.compose.animation)
-	implementation("com.composables:icons-material-symbols-outlined-cmp:2.2.1")
-	implementation("com.composables:icons-material-symbols-outlined-filled-cmp:2.2.1")
-	implementation("org.mozilla.geckoview:geckoview:147.0.20260203002554")
-	implementation("io.coil-kt:coil-compose:2.7.0")
+	implementation(libs.icons.material.symbols.outlined.cmp)
+	implementation(libs.icons.material.symbols.outlined.filled.cmp)
+	implementation(libs.geckoview)
+	implementation(libs.coil.compose)
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)
