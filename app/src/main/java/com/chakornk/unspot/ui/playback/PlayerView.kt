@@ -3,7 +3,10 @@
 package com.chakornk.unspot.ui.playback
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -153,11 +156,10 @@ private fun Modifier.swipeToSkip(
 
 @Composable
 private fun SwipeIndicator(
-	offset: Float, threshold: Float, modifier: Modifier = Modifier
+	offset: Float, threshold: Float, modifier: Modifier = Modifier, isFullPlayer: Boolean = false
 ) {
 	val isSkip = offset < 0
 	val progress = (offset.absoluteValue / threshold).coerceIn(0f, 1.2f)
-	val alpha by animateFloatAsState(if (offset.absoluteValue > 64f) 1f else 0f, label = "alpha")
 	val icon =
 		if (isSkip) MaterialSymbols.OutlinedFilled.Skip_next else MaterialSymbols.OutlinedFilled.Skip_previous
 	val isReached = offset.absoluteValue > threshold
@@ -175,18 +177,20 @@ private fun SwipeIndicator(
 	Box(
 		modifier = modifier
 			.fillMaxHeight()
-			.alpha(alpha),
+			.alpha(progress),
 		contentAlignment = if (isSkip) Alignment.CenterEnd else Alignment.CenterStart
 	) {
-		Box(
-			modifier = Modifier
-				.requiredSize((140 + (offset.absoluteValue / 4f)).dp)
-				.offset(x = ((if (isSkip) 1 else -1) * (80 + (64 * (1 - progress)) + (offset.absoluteValue / 8f))).dp)
-				.background(
-					color = backgroundColor, shape = CircleShape
-				)
-				.align(Alignment.Center), contentAlignment = Alignment.Center
-		) {}
+		if (!isFullPlayer) {
+			Box(
+				modifier = Modifier
+					.requiredSize((140 + (offset.absoluteValue / 4f)).dp)
+					.offset(x = ((if (isSkip) 1 else -1) * (80 + (64 * (1 - progress)) + (offset.absoluteValue / 8f))).dp)
+					.background(
+						color = backgroundColor, shape = CircleShape
+					)
+					.align(Alignment.Center), contentAlignment = Alignment.Center
+			) {}
+		}
 		Box(
 			modifier = modifier
 				.fillMaxHeight()
@@ -213,7 +217,12 @@ private fun FullPlayer(
 	onPreviousTrack: () -> Unit,
 	sheetState: SheetState
 ) {
-	var swipeOffset by remember { mutableFloatStateOf(0f) }
+	var swipeOffsetTarget by remember { mutableFloatStateOf(0f) }
+	val swipeOffset by animateFloatAsState(
+		targetValue = swipeOffsetTarget,
+		animationSpec = if (swipeOffsetTarget == 0f) spring(stiffness = Spring.StiffnessMediumLow) else snap(),
+		label = "swipeOffset"
+	)
 	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
 
 	ModalBottomSheet(
@@ -249,19 +258,23 @@ private fun FullPlayer(
 					.fillMaxWidth()
 					.swipeToSkip(
 						onSkip = onSkipTrack, onPrevious = onPreviousTrack
-					) { swipeOffset = it }) {
-				if (swipeOffset > 0) {
-					SwipeIndicator(
-						offset = swipeOffset,
-						threshold = threshold,
-						modifier = Modifier.align(Alignment.CenterStart)
-					)
-				} else if (swipeOffset < 0) {
-					SwipeIndicator(
-						offset = swipeOffset,
-						threshold = threshold,
-						modifier = Modifier.align(Alignment.CenterEnd)
-					)
+					) { swipeOffsetTarget = it }) {
+				if (swipeOffset.absoluteValue > 0.1f) {
+					if (swipeOffset > 0) {
+						SwipeIndicator(
+							offset = swipeOffset,
+							threshold = threshold,
+							modifier = Modifier.align(Alignment.CenterStart),
+							isFullPlayer = true
+						)
+					} else if (swipeOffset < 0) {
+						SwipeIndicator(
+							offset = swipeOffset,
+							threshold = threshold,
+							modifier = Modifier.align(Alignment.CenterEnd),
+							isFullPlayer = true
+						)
+					}
 				}
 				Box(modifier = Modifier.offset { IntOffset(swipeOffset.roundToInt(), 0) }) {
 					AsyncImage(
@@ -352,7 +365,12 @@ private fun NowPlayingBar(
 	onPreviousTrack: () -> Unit,
 	onClick: () -> Unit,
 ) {
-	var swipeOffset by remember { mutableFloatStateOf(0f) }
+	var swipeOffsetTarget by remember { mutableFloatStateOf(0f) }
+	val swipeOffset by animateFloatAsState(
+		targetValue = swipeOffsetTarget,
+		animationSpec = if (swipeOffsetTarget == 0f) spring(stiffness = Spring.StiffnessMediumLow) else snap(),
+		label = "swipeOffset"
+	)
 	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
 
 	Surface(
@@ -363,24 +381,28 @@ private fun NowPlayingBar(
 			.clip(RoundedCornerShape(8.dp))
 			.swipeToSkip(
 				onSkip = onSkipTrack, onPrevious = onPreviousTrack
-			) { swipeOffset = it }
+			) { swipeOffsetTarget = it }
 			.clickable { onClick() },
 		color = MaterialTheme.colorScheme.surfaceContainerHigh,
 		tonalElevation = 8.dp
 	) {
 		Box(modifier = Modifier.fillMaxSize()) {
-			if (swipeOffset > 0) {
-				SwipeIndicator(
-					offset = swipeOffset,
-					threshold = threshold,
-					modifier = Modifier.align(Alignment.CenterStart)
-				)
-			} else if (swipeOffset < 0) {
-				SwipeIndicator(
-					offset = swipeOffset,
-					threshold = threshold,
-					modifier = Modifier.align(Alignment.CenterEnd)
-				)
+			if (swipeOffset.absoluteValue > 0.1f) {
+				if (swipeOffset > 0) {
+					SwipeIndicator(
+						offset = swipeOffset,
+						threshold = threshold,
+						modifier = Modifier.align(Alignment.CenterStart),
+						isFullPlayer = false
+					)
+				} else if (swipeOffset < 0) {
+					SwipeIndicator(
+						offset = swipeOffset,
+						threshold = threshold,
+						modifier = Modifier.align(Alignment.CenterEnd),
+						isFullPlayer = false
+					)
+				}
 			}
 
 			Column(
