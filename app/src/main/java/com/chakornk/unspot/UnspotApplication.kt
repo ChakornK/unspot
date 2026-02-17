@@ -2,6 +2,7 @@ package com.chakornk.unspot
 
 import android.app.Application
 import android.os.Build
+import com.chakornk.unspot.gecko.WebExtensionManager
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 
@@ -10,6 +11,8 @@ class UnspotApplication : Application() {
 	val geckoRuntime: GeckoRuntime
 		get() = _geckoRuntime
 			?: throw IllegalStateException("GeckoRuntime not initialized. Are you in the main process?")
+
+	val webExtensionManager = WebExtensionManager()
 
 	override fun onCreate() {
 		super.onCreate()

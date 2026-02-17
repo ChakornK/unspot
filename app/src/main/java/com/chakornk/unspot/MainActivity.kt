@@ -1,5 +1,6 @@
 package com.chakornk.unspot
 
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -30,11 +31,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.chakornk.unspot.gecko.WebExtensionManager
+import com.chakornk.unspot.playback.MediaPlaybackService
 import com.chakornk.unspot.ui.auth.AuthViewModel
 import com.chakornk.unspot.ui.auth.LoginScreen
 import com.chakornk.unspot.ui.components.LoadingScreen
@@ -48,6 +52,7 @@ import com.chakornk.unspot.ui.search.SearchScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.chakornk.unspot.ui.welcome.WelcomeScreen
 import com.chakornk.unspot.ui.welcome.WelcomeViewModel
+import com.google.common.util.concurrent.MoreExecutors
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
@@ -118,14 +123,26 @@ class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
-		val geckoRuntime = (application as UnspotApplication).geckoRuntime
+		val app = application as UnspotApplication
+		val geckoRuntime = app.geckoRuntime
+		val webExtensionManager = app.webExtensionManager
+
+		val sessionToken = SessionToken(this, ComponentName(this, MediaPlaybackService::class.java))
+		val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+		controllerFuture.addListener(
+			{
+				// Call controllerFuture.get() to retrieve the MediaController.
+				// MediaController implements the Player interface, so it can be
+				// attached to the PlayerView UI component.
+//				playerView.setPlayer(controllerFuture.get())
+			}, MoreExecutors.directExecutor()
+		)
 
 		setContent {
 			val navController = rememberNavController()
 			val authViewModel: AuthViewModel = viewModel()
 			val welcomeViewModel: WelcomeViewModel = viewModel()
 			val playbackViewModel: PlaybackViewModel = viewModel()
-			val webExtensionManager = remember { WebExtensionManager() }
 
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)

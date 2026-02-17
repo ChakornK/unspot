@@ -46,6 +46,8 @@ dependencies {
 	implementation(libs.androidx.ui)
 	implementation(libs.androidx.navigation.compose)
 	implementation(libs.androidx.compose.animation)
+	implementation(libs.androidx.media3.session)
+	implementation(libs.androidx.media3.common)
 	implementation(libs.icons.material.symbols.outlined.cmp)
 	implementation(libs.icons.material.symbols.outlined.filled.cmp)
 	implementation(libs.geckoview)
