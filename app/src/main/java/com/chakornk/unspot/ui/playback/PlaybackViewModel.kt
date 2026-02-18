@@ -31,4 +31,8 @@ class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : Ba
 	fun previousTrack() {
 		sendMessage(model.previousTrackMessage)
 	}
+
+	fun seekTo(position: Long) {
+		sendMessage(model.setPlaybackPositionMessage, model.createSetPlaybackPositionMessage(position))
+	}
 }

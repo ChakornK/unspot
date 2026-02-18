@@ -23,8 +23,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class MediaPlaybackService : MediaSessionService() {
-	private val ACTION_FAVORITES = "ACTION_FAVORITES"
-	private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
+	private val customCommandShuffle = SessionCommand("ACTION_SHUFFLE", Bundle.EMPTY)
 	private lateinit var mediaSession: MediaSession
 	private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -35,9 +34,9 @@ class MediaPlaybackService : MediaSessionService() {
 			DefaultMediaNotificationProvider(this)
 		)
 
-		val favoriteButton =
-			CommandButton.Builder(CommandButton.ICON_HEART_UNFILLED).setDisplayName("Save to favorites")
-				.setSessionCommand(customCommandFavorites).build()
+		val shuffleButton =
+			CommandButton.Builder(CommandButton.ICON_SHUFFLE_OFF).setDisplayName("Shuffle")
+				.setSessionCommand(customCommandShuffle).build()
 
 		val app = application as UnspotApplication
 		val webExtensionManager = app.webExtensionManager
@@ -68,7 +67,7 @@ class MediaPlaybackService : MediaSessionService() {
 
 		mediaSession =
 			MediaSession.Builder(this, player).setSessionActivity(pendingIntent).setId("unspot")
-				.setCallback(MyCallback()).setMediaButtonPreferences(ImmutableList.of(favoriteButton))
+				.setCallback(MyCallback()).setMediaButtonPreferences(ImmutableList.of(shuffleButton))
 				.build()
 	}
 
@@ -90,7 +89,7 @@ class MediaPlaybackService : MediaSessionService() {
 			return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
 				.setAvailableSessionCommands(
 					MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
-						.add(customCommandFavorites).build()
+						.add(customCommandShuffle).build()
 				).build()
 		}
 
@@ -100,8 +99,7 @@ class MediaPlaybackService : MediaSessionService() {
 			customCommand: SessionCommand,
 			args: Bundle
 		): ListenableFuture<SessionResult> {
-			if (customCommand.customAction == ACTION_FAVORITES) {
-				// Do custom logic here
+			if (customCommand.customAction == "ACTION_SHUFFLE") {
 				return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
 			}
 			return super.onCustomCommand(session, controller, customCommand, args)

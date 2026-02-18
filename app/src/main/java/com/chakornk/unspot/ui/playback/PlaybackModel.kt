@@ -16,6 +16,7 @@ class PlaybackModel {
 	val togglePlaybackMessage = "togglePlayback"
 	val skipTrackMessage = "skipTrack"
 	val previousTrackMessage = "previousTrack"
+	val setPlaybackPositionMessage = "setPlaybackPosition"
 
 	fun parsePlaybackState(data: JSONObject): PlaybackState {
 		return PlaybackState(
@@ -26,5 +27,11 @@ class PlaybackModel {
 			currentTime = data.optLong("currentTime", 0L),
 			totalTime = data.optLong("totalTime", 0L)
 		)
+	}
+
+	fun createSetPlaybackPositionMessage(position: Long): JSONObject {
+		return JSONObject().apply {
+			put("position", position)
+		}
 	}
 }

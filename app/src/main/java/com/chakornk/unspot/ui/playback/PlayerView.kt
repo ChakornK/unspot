@@ -87,6 +87,7 @@ fun PlayerView(
 	onTogglePlayback: () -> Unit,
 	onSkipTrack: () -> Unit,
 	onPreviousTrack: () -> Unit,
+	onSeek: (Long) -> Unit,
 ) {
 	if (state.title.isEmpty()) return
 
@@ -107,6 +108,7 @@ fun PlayerView(
 			onTogglePlayback = onTogglePlayback,
 			onSkipTrack = onSkipTrack,
 			onPreviousTrack = onPreviousTrack,
+			onSeek = onSeek,
 			sheetState = sheetState
 		)
 	}
@@ -215,6 +217,7 @@ private fun FullPlayer(
 	onTogglePlayback: () -> Unit,
 	onSkipTrack: () -> Unit,
 	onPreviousTrack: () -> Unit,
+	onSeek: (Long) -> Unit,
 	sheetState: SheetState
 ) {
 	var swipeOffsetTarget by remember { mutableFloatStateOf(0f) }
@@ -224,6 +227,11 @@ private fun FullPlayer(
 		label = "swipeOffset"
 	)
 	val threshold = with(LocalDensity.current) { 80.dp.toPx() }
+
+	var sliderValue by remember(state.currentTime, state.totalTime) {
+		mutableFloatStateOf(if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f)
+	}
+	var isDragging by remember { mutableStateOf(false) }
 
 	ModalBottomSheet(
 		onDismissRequest = onCollapse,
@@ -311,9 +319,13 @@ private fun FullPlayer(
 
 			Column(modifier = Modifier.fillMaxWidth()) {
 				Slider(
-					value = if (state.totalTime > 0) state.currentTime / state.totalTime.toFloat() else 0f,
-					onValueChange = { },
-					modifier = Modifier.fillMaxWidth()
+					value = sliderValue, onValueChange = {
+					isDragging = true
+					sliderValue = it
+				}, onValueChangeFinished = {
+					isDragging = false
+					onSeek((sliderValue * state.totalTime).toLong())
+				}, modifier = Modifier.fillMaxWidth()
 				)
 				Row(
 					modifier = Modifier
@@ -322,7 +334,10 @@ private fun FullPlayer(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Text(
-						text = formatTime(state.currentTime / 1000),
+						text = formatTime(
+							if (isDragging) (sliderValue * state.totalTime / 1000).toLong()
+							else state.currentTime / 1000
+						),
 						style = MaterialTheme.typography.labelSmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
@@ -492,6 +507,7 @@ fun FullPlayerPreview() {
 			onTogglePlayback = {},
 			onSkipTrack = {},
 			onPreviousTrack = {},
+			onSeek = {},
 			sheetState = SheetState(
 				skipPartiallyExpanded = true,
 				positionalThreshold = { 0f },
@@ -517,6 +533,7 @@ fun PlayerViewPreview() {
 			onTogglePlayback = {},
 			onSkipTrack = {},
 			onPreviousTrack = {},
+			onSeek = {},
 			isExpanded = false
 		)
 	}

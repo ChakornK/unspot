@@ -27,4 +27,15 @@ class MediaCommandHandler(
 	override fun seekToPrevious() {
 		webExtensionManager.sendMessage(playbackModel.previousTrackMessage)
 	}
+
+	override fun seekTo(positionMs: Long) {
+		webExtensionManager.sendMessage(
+			playbackModel.setPlaybackPositionMessage,
+			playbackModel.createSetPlaybackPositionMessage(positionMs)
+		)
+	}
+
+	override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+		this.seekTo(positionMs)
+	}
 }

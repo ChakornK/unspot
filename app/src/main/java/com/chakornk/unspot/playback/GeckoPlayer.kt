@@ -29,6 +29,7 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 		return State.Builder().setAvailableCommands(
 			Player.Commands.Builder().addAll(
 				COMMAND_PLAY_PAUSE,
+				COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
 				COMMAND_SEEK_TO_NEXT,
 				COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
 				COMMAND_SEEK_TO_PREVIOUS,
