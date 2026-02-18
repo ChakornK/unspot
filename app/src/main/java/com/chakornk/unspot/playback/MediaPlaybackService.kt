@@ -75,6 +75,12 @@ class MediaPlaybackService : MediaSessionService() {
 		return mediaSession
 	}
 
+	override fun onTaskRemoved(rootIntent: Intent?) {
+		super.onTaskRemoved(rootIntent)
+		mediaSession.player.pause()
+		stopSelf()
+	}
+
 	override fun onDestroy() {
 		mediaSession.release()
 		serviceScope.cancel()

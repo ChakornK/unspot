@@ -17,13 +17,7 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 	private var isCurrentlyPlaying = false
 	private var currentPosition = 0L
 
-	private var playlistPlaceholder = listOf(
-		MediaItemData.Builder("placeholder").setMediaItem(
-			MediaItem.Builder().setMediaId("unspot-track").setUri("").setMediaMetadata(
-				MediaMetadata.Builder().setTitle("Nothing playing").setArtist(" ").build()
-			).build()
-		).build()
-	)
+	private var playlist = listOf<MediaItemData>()
 
 	override fun getState(): State {
 		return State.Builder().setAvailableCommands(
@@ -37,10 +31,10 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 				COMMAND_GET_CURRENT_MEDIA_ITEM,
 				COMMAND_GET_METADATA
 			).build()
-		).setPlaylist(playlistPlaceholder).setPlayWhenReady(
+		).setPlaylist(playlist).setPlayWhenReady(
 			isCurrentlyPlaying, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
 		).setPlaybackState(
-			if (playlistPlaceholder.isNotEmpty()) STATE_READY else STATE_IDLE
+			if (playlist.isNotEmpty()) STATE_READY else STATE_IDLE
 		).setContentPositionMs(currentPosition).setAudioAttributes(
 			AudioAttributes.Builder().setContentType(AUDIO_CONTENT_TYPE_MUSIC).setUsage(USAGE_MEDIA)
 				.build()
@@ -63,7 +57,7 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 					.setDurationMs(totalTime).setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC).build()
 			val mediaItem = MediaItem.Builder().setMediaId(id).setMediaMetadata(mediaMetadata).build()
 
-			this.playlistPlaceholder = listOf(
+			this.playlist = listOf(
 				MediaItemData.Builder(mediaItem.mediaId!!).setMediaItem(mediaItem).build()
 			)
 		}
