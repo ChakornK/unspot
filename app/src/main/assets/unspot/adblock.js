@@ -12,7 +12,7 @@ document.createElement = (() => {
               oldVolume = target.volume;
               target.volume = 0.0001;
             }
-            target.currentTime = target.duration;
+            target.currentTime = target.duration - 0.1;
           }, 1);
         } else {
           if (oldVolume !== null) {
@@ -22,13 +22,14 @@ document.createElement = (() => {
         }
       });
       element.addEventListener("ended", (event) => {
-        if (!event.currentTarget.src.startsWith("blob:https://open.spotify.com/") && event.currentTarget.duration < 40) {
-          setTimeout(() => {
-            try {
-              event.currentTarget.play();
-            } catch {}
-          }, 50);
-        }
+        const t = setInterval(() => {
+          const target = event.currentTarget;
+          if (!target.paused && !target.ended) return clearInterval(t);
+          if (!target.src.startsWith("blob:https://open.spotify.com/") && target.duration < 40) {
+            return target.play();
+          }
+          clearInterval(t);
+        }, 100);
       });
     }
     return element;
