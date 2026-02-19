@@ -21,6 +21,15 @@ document.createElement = (() => {
           }
         }
       });
+      element.addEventListener("ended", (event) => {
+        if (!event.currentTarget.src.startsWith("blob:https://open.spotify.com/") && event.currentTarget.duration < 40) {
+          setTimeout(() => {
+            try {
+              event.currentTarget.play();
+            } catch {}
+          }, 10);
+        }
+      });
     }
     return element;
   };
