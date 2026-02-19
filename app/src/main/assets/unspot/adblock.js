@@ -12,7 +12,7 @@ document.createElement = (() => {
               oldVolume = target.volume;
               target.volume = 0.0001;
             }
-            target.currentTime = target.duration - 0.5;
+            target.currentTime = target.duration;
           }, 1);
         } else {
           if (oldVolume !== null) {
@@ -27,7 +27,7 @@ document.createElement = (() => {
             try {
               event.currentTarget.play();
             } catch {}
-          }, 10);
+          }, 50);
         }
       });
     }
