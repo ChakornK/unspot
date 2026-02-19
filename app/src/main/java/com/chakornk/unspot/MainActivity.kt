@@ -82,21 +82,22 @@ fun SpotifyWebView(
 	runtime.storageController.clearData(
 		StorageController.ClearFlags.DOM_STORAGES
 	)
-	runtime.webExtensionController.ensureBuiltIn("resource://android/assets/messaging/", "@unspot")
-		.accept({ extension: WebExtension? ->
-			Log.i(
-				"MessageDelegate", "Extension installed: $extension"
+	runtime.webExtensionController.ensureBuiltIn(
+		"resource://android/assets/unspot/", "@unspot"
+	).accept({ extension: WebExtension? ->
+		Log.i(
+			"MessageDelegate", "Extension installed: $extension"
+		)
+		extension?.let {
+			session.webExtensionController.setMessageDelegate(
+				it, webExtensionManager.messageDelegate, "browser"
 			)
-			extension?.let {
-				session.webExtensionController.setMessageDelegate(
-					it, webExtensionManager.messageDelegate, "browser"
-				)
-			}
-		}, { e: Throwable? ->
-			Log.e(
-				"MessageDelegate", "Error registering WebExtension", e
-			)
-		})
+		}
+	}, { e: Throwable? ->
+		Log.e(
+			"MessageDelegate", "Error registering WebExtension", e
+		)
+	})
 
 	AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
 		GeckoView(ctx).apply {
@@ -264,7 +265,6 @@ class MainActivity : ComponentActivity() {
 							}
 						}
 					}
-
 				}
 			}
 		}

@@ -11,7 +11,13 @@
   "content_scripts": [
     {
       "matches": ["*://*.spotify.com/*"],
-      "js": ["index.js"]
+      "js": ["messaging.js"]
+    },
+    {
+      "matches": ["*://*.spotify.com/*"],
+      "js": ["adblock.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons"]
