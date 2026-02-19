@@ -1,11 +1,9 @@
 const originalCreateElement = document.createElement;
-window.adblockDebug = [];
 let oldVolume = null;
 document.createElement = (() => {
   return function () {
     const element = originalCreateElement.apply(this, arguments);
     if (element instanceof HTMLMediaElement) {
-      window.adblockDebug.push(element);
       element.addEventListener("play", (event) => {
         if (!event.currentTarget.src.startsWith("blob:https://open.spotify.com/") && event.currentTarget.duration < 40) {
           const target = event.currentTarget;
