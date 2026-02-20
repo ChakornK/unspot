@@ -49,6 +49,7 @@ import com.chakornk.unspot.ui.auth.LoginScreen
 import com.chakornk.unspot.ui.components.LoadingScreen
 import com.chakornk.unspot.ui.home.HomeScreen
 import com.chakornk.unspot.ui.library.LibraryScreen
+import com.chakornk.unspot.ui.library.LibraryViewModel
 import com.chakornk.unspot.ui.navigation.Tab
 import com.chakornk.unspot.ui.navigation.View
 import com.chakornk.unspot.ui.playback.PlaybackViewModel
@@ -260,7 +261,13 @@ class MainActivity : ComponentActivity() {
 									}
 									composable(View.Home.route) { HomeScreen() }
 									composable(View.Search.route) { SearchScreen() }
-									composable(View.Library.route) { LibraryScreen() }
+									composable(View.Library.route) {
+										val libraryViewModel: LibraryViewModel = viewModel()
+										LaunchedEffect(Unit) {
+											libraryViewModel.attachManager(webExtensionManager)
+										}
+										LibraryScreen(viewModel = libraryViewModel)
+									}
 								}
 							}
 						}

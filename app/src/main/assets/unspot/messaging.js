@@ -58,6 +58,80 @@ function getIsPlaying() {
   return playpause.getAttribute("d")?.toLowerCase()?.match(/z/g)?.length === 2;
 }
 
+const getLibraryData = () => {
+  return new Promise((resolve) => {
+    const scrollContainer = document.querySelector("nav .YourLibraryX [data-overlayscrollbars-viewport]");
+    const listContainer = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid])");
+    const libraryItems = new Map();
+
+    const parseItems = () => {
+      const rows = document.querySelectorAll("nav .YourLibraryX [role='presentation']:not([data-testid]) > [aria-rowindex]");
+      for (const p of rows) {
+        const index = p.getAttribute("aria-rowindex");
+        if (libraryItems.has(index)) continue;
+
+        const type = p
+          .querySelector("[aria-labelledby*='listrow-title']")
+          ?.getAttribute("aria-labelledby")
+          ?.match(/(?<=listrow-title-spotify:).+?(?=:)/i)?.[0];
+        const cover = p.querySelector("img")?.getAttribute("src");
+        const title = p.querySelector("[data-encore-id='listRowTitle']")?.textContent;
+        const subtitle = p.querySelector("[data-encore-id='listRowSubtitle']")?.textContent;
+        const isActive = !!p.querySelector("[data-encore-id='listRowTitle'][class*='accent']");
+
+        if (!type || !cover || !title || !subtitle) continue;
+
+        libraryItems.set(index, {
+          index,
+          type,
+          cover,
+          title,
+          subtitle,
+          isActive,
+        });
+      }
+    };
+
+    const scrollToNextWindow = () => {
+      const last = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid]) > [aria-rowindex]:last-child");
+      last?.scrollIntoView({ behavior: "instant", block: "start" });
+    };
+
+    let endTimer = null;
+    const checkListEnd = () => {
+      clearTimeout(endTimer);
+      endTimer = setTimeout(() => {
+        observer.disconnect();
+        resolve({
+          items: [...libraryItems.values()],
+        });
+      }, 300);
+    };
+
+    const observer = new MutationObserver(() => {
+      clearTimeout(endTimer);
+      parseItems();
+      scrollToNextWindow();
+      checkListEnd();
+    });
+    observer.observe(listContainer, {
+      childList: true,
+      subtree: true,
+    });
+
+    scrollContainer.addEventListener(
+      "scrollend",
+      () => {
+        parseItems();
+        scrollToNextWindow();
+        scheduleEndCheck();
+      },
+      { once: true },
+    );
+    scrollContainer.scrollTo({ behavior: "instant", top: 0 });
+  });
+};
+
 const handlers = {
   getIsSignedIn: () => {
     return document.cookie.includes("sp_key");
@@ -81,6 +155,7 @@ const handlers = {
     }
     return { success: false, error: "Inputs not found" };
   },
+
   togglePlayback: () => {
     if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
     npb.querySelector("button[data-testid='control-button-playpause']").click();
@@ -104,14 +179,18 @@ const handlers = {
     npb.querySelector("div[data-testid='playback-progressbar'] input").dispatchEvent(new Event("input", { bubbles: true }));
     return { success: true };
   },
+
+  getLibraryData: async () => {
+    return await getLibraryData();
+  },
 };
 
-ipc.onMessage.addListener((message) => {
+ipc.onMessage.addListener(async (message) => {
   console.log("Received message from app:", message);
   const handler = handlers[message.type];
   if (handler) {
     try {
-      const result = handler(message.data);
+      const result = await handler(message.data);
       if (result !== undefined) {
         ipc.postMessage({ type: `${message.type}Response`, data: result });
       }
@@ -133,3 +212,19 @@ const npbFinder = new MutationObserver(() => {
   }
 });
 npbFinder.observe(document.documentElement, { childList: true, subtree: true });
+
+const postLibraryUpdate = async () => {
+  ipc.postMessage({ type: "getLibraryDataResponse", data: await getLibraryData() });
+};
+const libraryObserver = new MutationObserver(() => {
+  postLibraryUpdate();
+});
+const libraryFinder = new MutationObserver(() => {
+  const library = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid])");
+  if (library) {
+    libraryObserver.observe(library, { childList: true, subtree: true });
+    libraryFinder.disconnect();
+    postLibraryUpdate();
+  }
+});
+libraryFinder.observe(document.documentElement, { childList: true, subtree: true });
