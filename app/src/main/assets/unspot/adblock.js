@@ -4,33 +4,30 @@ document.createElement = (() => {
   return function () {
     const element = originalCreateElement.apply(this, arguments);
     if (element instanceof HTMLMediaElement) {
-      element.addEventListener("play", (event) => {
-        if (!event.currentTarget.src.startsWith("blob:https://open.spotify.com/") && event.currentTarget.duration < 40) {
-          const target = event.currentTarget;
+      const oldPlay = element.play;
+      element.play = function () {
+        if (!this.src.startsWith("blob:https://open.spotify.com/") && this.duration < 40) {
+          window.adblockDebug = this;
+          this.dispatchEvent(new Event("play"));
           setTimeout(() => {
-            if (target.volume !== 0.0001) {
-              oldVolume = target.volume;
-              target.volume = 0.0001;
-            }
-            target.currentTime = target.duration - 0.1;
-          }, 1);
+            this.currentTime = this.duration;
+            this.dispatchEvent(new Event("timeupdate"));
+            const oldSrc = this.src;
+            const inter = setInterval(() => {
+              if (this.src !== oldSrc) return clearInterval(inter);
+              this.currentTime = this.duration;
+              this.dispatchEvent(new Event("ended"));
+            }, 20);
+            setTimeout(() => {
+              try {
+                clearInterval(inter);
+              } catch {}
+            }, 10000);
+          }, 20);
         } else {
-          if (oldVolume !== null) {
-            event.currentTarget.volume = oldVolume;
-            oldVolume = null;
-          }
+          oldPlay.apply(this, arguments);
         }
-      });
-      element.addEventListener("ended", (event) => {
-        const t = setInterval(() => {
-          const target = event.currentTarget;
-          if (!target.paused && !target.ended) return clearInterval(t);
-          if (!target.src.startsWith("blob:https://open.spotify.com/") && target.duration < 40) {
-            return target.play();
-          }
-          clearInterval(t);
-        }, 100);
-      });
+      };
     }
     return element;
   };
