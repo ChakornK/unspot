@@ -18,6 +18,12 @@
       "js": ["adblock.js"],
       "run_at": "document_start",
       "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.spotify.com/*"],
+      "js": ["hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons"]
