@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -153,7 +154,7 @@ fun LibraryItemRow(item: LibraryItem, onClick: () -> Unit) {
 			modifier = Modifier
 				.size(56.dp)
 				.clip(RoundedCornerShape(4.dp))
-				.background(MaterialTheme.colorScheme.surfaceContainerLow),
+				.background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)),
 			contentScale = ContentScale.Crop
 		)
 
