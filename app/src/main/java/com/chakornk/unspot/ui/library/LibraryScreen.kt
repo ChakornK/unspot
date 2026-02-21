@@ -1,5 +1,6 @@
 package com.chakornk.unspot.ui.library
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,32 +13,126 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.chakornk.unspot.ui.theme.PreviewScreen
 import com.chakornk.unspot.ui.theme.ThemePreview
 import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.outlined.Close
+import com.composables.icons.materialsymbols.outlined.Search
 import com.composables.icons.materialsymbols.outlinedfilled.Volume_up
 
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel) {
-	val items = viewModel.libraryItems
+fun LibraryScreen(
+	viewModel: LibraryViewModel, onSetTopBar: (@Composable () -> Unit) -> Unit
+) {
+	val items = viewModel.filteredItems
+	var isSearchActive by remember { mutableStateOf(false) }
+
+	LaunchedEffect(isSearchActive, viewModel.searchQuery) {
+		onSetTopBar {
+			LibraryTopBar(
+				searchQuery = viewModel.searchQuery,
+				onSearchQueryChange = { viewModel.searchQuery = it },
+				isSearchActive = isSearchActive,
+				onSearchToggle = {
+					isSearchActive = !isSearchActive
+					if (!isSearchActive) viewModel.searchQuery = ""
+				})
+		}
+	}
+
+	DisposableEffect(Unit) {
+		onDispose {
+			onSetTopBar {}
+		}
+	}
 
 	LazyColumn(modifier = Modifier.fillMaxSize()) {
-		items(items) { item ->
+		items(items, key = { it.index }) { item ->
 			LibraryItemRow(item, onClick = { })
 		}
 	}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LibraryTopBar(
+	searchQuery: String,
+	onSearchQueryChange: (String) -> Unit,
+	isSearchActive: Boolean,
+	onSearchToggle: () -> Unit
+) {
+	val focusRequester = remember { FocusRequester() }
+	val focusManager = LocalFocusManager.current
+
+	TopAppBar(title = {
+		if (isSearchActive) {
+			BasicTextField(
+				value = searchQuery,
+				onValueChange = onSearchQueryChange,
+				modifier = Modifier
+					.fillMaxWidth()
+					.focusRequester(focusRequester),
+				textStyle = MaterialTheme.typography.bodyLarge.merge(color = MaterialTheme.colorScheme.onSurface),
+				singleLine = true,
+				keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+				keyboardActions = KeyboardActions(onSearch = {
+					focusManager.clearFocus()
+				}),
+				decorationBox = { innerTextField ->
+					if (searchQuery.isEmpty()) {
+						Text(
+							text = "Search library",
+							style = MaterialTheme.typography.bodyLarge,
+							color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+						)
+					}
+					innerTextField()
+				},
+				cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+			)
+			LaunchedEffect(Unit) {
+				focusRequester.requestFocus()
+			}
+		} else {
+			Text("Your Library")
+		}
+	}, actions = {
+		IconButton(onClick = onSearchToggle) {
+			Icon(
+				imageVector = if (isSearchActive) MaterialSymbols.Outlined.Close else MaterialSymbols.Outlined.Search,
+				contentDescription = if (isSearchActive) "Close search" else "Search"
+			)
+		}
+	})
 }
 
 @Composable
@@ -57,7 +152,8 @@ fun LibraryItemRow(item: LibraryItem, onClick: () -> Unit) {
 			contentDescription = null,
 			modifier = Modifier
 				.size(56.dp)
-				.clip(RoundedCornerShape(4.dp)),
+				.clip(RoundedCornerShape(4.dp))
+				.background(MaterialTheme.colorScheme.surfaceContainerLow),
 			contentScale = ContentScale.Crop
 		)
 
@@ -98,11 +194,18 @@ fun LibraryItemRow(item: LibraryItem, onClick: () -> Unit) {
 @ThemePreview
 @Composable
 fun LibraryScreenPreview() {
-	PreviewScreen {
+	PreviewScreen(
+		topBar = {
+			LibraryTopBar(
+				searchQuery = "",
+				onSearchQueryChange = {},
+				isSearchActive = true,
+				onSearchToggle = {})
+		}) {
 		// Mock data for preview
 		val mockItems = listOf(
 			LibraryItem(
-				0, "playlist", "https://example.com/c1.jpg", "Liked Songs", "Playlist • 123 songs", true
+				0, "playlist", "https://example.com/c1.jpg", "Liked Songs", "Playlist • John Doe", true
 			), LibraryItem(1, "artist", "https://example.com/c2.jpg", "Artist Name", "Artist", false)
 		)
 		LazyColumn {

@@ -42,14 +42,28 @@ fun UnspotTheme(
 	)
 }
 
-@Preview(name = "light", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO, backgroundColor = 0xfef7ff)
-@Preview(name = "dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, backgroundColor = 0x141218)
+@Preview(
+	name = "light",
+	showBackground = true,
+	uiMode = Configuration.UI_MODE_NIGHT_NO,
+	backgroundColor = 0xfef7ff
+)
+@Preview(
+	name = "dark",
+	showBackground = true,
+	uiMode = Configuration.UI_MODE_NIGHT_YES,
+	backgroundColor = 0x141218
+)
 annotation class ThemePreview
 
 @Composable
-fun PreviewScreen(bottomBar: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
+fun PreviewScreen(
+	topBar: @Composable () -> Unit = {},
+	bottomBar: @Composable () -> Unit = {},
+	content: @Composable () -> Unit
+) {
 	UnspotTheme {
-		Scaffold(bottomBar = bottomBar, modifier = Modifier.fillMaxSize()) { padding ->
+		Scaffold(topBar = topBar, bottomBar = bottomBar, modifier = Modifier.fillMaxSize()) { padding ->
 			Box(modifier = Modifier.padding(padding)) {
 				content()
 			}

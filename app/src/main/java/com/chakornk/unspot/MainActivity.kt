@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -153,10 +154,14 @@ class MainActivity : ComponentActivity() {
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)
 
+			val navBackStackEntry by navController.currentBackStackEntryAsState()
+			val currentRoute = navBackStackEntry?.destination?.route
+
 			val isLoggedIn = authViewModel.isLoggedIn
 			val isCheckingAuth = authViewModel.isCheckingAuth
 
 			var isPlayerExpanded by remember { mutableStateOf(false) }
+			val topBarContents = remember { mutableStateMapOf<String, @Composable () -> Unit>() }
 
 			val tabs = listOf(
 				Tab.Home, Tab.Search, Tab.Library
@@ -177,7 +182,15 @@ class MainActivity : ComponentActivity() {
 						}
 					} else {
 						Scaffold(
-							modifier = Modifier.fillMaxSize(), bottomBar = {
+							modifier = Modifier.fillMaxSize(),
+							topBar = {
+								if (isLoggedIn) {
+									currentRoute?.let { route ->
+										topBarContents[route]?.invoke()
+									}
+								}
+							},
+							bottomBar = {
 								if (isLoggedIn) {
 									Column {
 										PlayerView(
@@ -190,17 +203,14 @@ class MainActivity : ComponentActivity() {
 											isExpanded = isPlayerExpanded
 										)
 										NavigationBar {
-											val navBackStackEntry by navController.currentBackStackEntryAsState()
-											val currentRoute = navBackStackEntry?.destination?.route
-
 											tabs.forEach { tab ->
 												NavigationBarItem(
 													icon = {
-													Icon(
-														if (currentRoute == tab.route) tab.iconSelected else tab.icon,
-														tab.label
-													)
-												},
+														Icon(
+															if (currentRoute == tab.route) tab.iconSelected else tab.icon,
+															tab.label
+														)
+													},
 													label = { Text(tab.label) },
 													selected = currentRoute == tab.route,
 													onClick = {
@@ -259,14 +269,21 @@ class MainActivity : ComponentActivity() {
 									composable(View.Login.route) {
 										LoginScreen(viewModel = authViewModel)
 									}
-									composable(View.Home.route) { HomeScreen() }
-									composable(View.Search.route) { SearchScreen() }
+									composable(View.Home.route) {
+										HomeScreen()
+									}
+									composable(View.Search.route) {
+										SearchScreen()
+									}
 									composable(View.Library.route) {
 										val libraryViewModel: LibraryViewModel = viewModel()
 										LaunchedEffect(Unit) {
 											libraryViewModel.attachManager(webExtensionManager)
 										}
-										LibraryScreen(viewModel = libraryViewModel)
+										LibraryScreen(
+											viewModel = libraryViewModel,
+											onSetTopBar = { content -> topBarContents[View.Library.route] = content }
+										)
 									}
 								}
 							}
