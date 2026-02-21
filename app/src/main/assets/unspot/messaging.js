@@ -124,7 +124,7 @@ const getLibraryData = () => {
       () => {
         parseItems();
         scrollToNextWindow();
-        scheduleEndCheck();
+        checkListEnd();
       },
       { once: true },
     );
@@ -180,8 +180,8 @@ const handlers = {
     return { success: true };
   },
 
-  getLibraryData: async () => {
-    return await getLibraryData();
+  getLibraryData: () => {
+    return getLibraryData();
   },
 };
 
