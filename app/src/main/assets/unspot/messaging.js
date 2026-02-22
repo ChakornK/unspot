@@ -134,9 +134,9 @@ const handlers = {
   previousTrack: async () => {
     const { position } = await Platform.PlayerSDK.harmony.getCurrentState();
     if (position <= 5000) {
-      await Platform.PlayerSDK.harmony.seek(0);
-    } else {
       await Platform.PlayerSDK.harmony.previousTrack();
+    } else {
+      await Platform.PlayerSDK.harmony.seek(0);
     }
     return { success: true };
   },
