@@ -30,7 +30,7 @@ class LibraryViewModel(private val model: LibraryModel = LibraryModel()) : BaseG
 		when (message.type) {
 			model.libraryUpdateMessage -> {
 				message.data?.optJSONArray("items")?.let { items ->
-					libraryItems = model.parseLibraryItems(items).sortedBy { it.index }
+					libraryItems = model.parseLibraryItems(items)
 				}
 			}
 		}

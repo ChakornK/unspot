@@ -77,7 +77,7 @@ fun LibraryScreen(
 	}
 
 	LazyColumn(modifier = Modifier.fillMaxSize()) {
-		items(items, key = { it.index }) { item ->
+		items(items, key = { it.uri }) { item ->
 			LibraryItemRow(item, onClick = { })
 		}
 	}
@@ -206,8 +206,8 @@ fun LibraryScreenPreview() {
 		// Mock data for preview
 		val mockItems = listOf(
 			LibraryItem(
-				0, "playlist", "https://example.com/c1.jpg", "Liked Songs", "Playlist • John Doe", true
-			), LibraryItem(1, "artist", "https://example.com/c2.jpg", "Artist Name", "Artist", false)
+				"1", "playlist", "https://example.com/c1.jpg", "Liked Songs", "Playlist • John Doe", true
+			), LibraryItem("2", "artist", "https://example.com/c2.jpg", "Artist Name", "Artist", false)
 		)
 		LazyColumn {
 			items(mockItems) { item ->

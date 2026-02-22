@@ -1,4 +1,51 @@
-const ipc = browser.runtime.connectNative("browser");
+let _Platform;
+
+window.webpackChunkclient_web = window.webpackChunkclient_web || [];
+
+window.webpackChunkclient_web.push([
+  ["__platform_hook__"],
+  {},
+  function installHook(require) {
+    const originalD = require.d.bind(require);
+    require.d = function (exports, descriptors) {
+      if (Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")) {
+        const originalGetter = descriptors.createPlatformWeb;
+        descriptors = Object.assign({}, descriptors, {
+          createPlatformWeb: function () {
+            const originalFn = originalGetter();
+            return async function createPlatformWeb(...args) {
+              const platform = await originalFn.apply(this, args);
+              _Platform = platform;
+              return platform;
+            };
+          },
+        });
+      }
+      originalD(exports, descriptors);
+    };
+  },
+]);
+
+const Platform = new Proxy(
+  {},
+  {
+    get: function (_, prop) {
+      if (!_Platform) return undefined;
+      if (prop === "then") return Promise.resolve(_Platform);
+      return _Platform.getRegistry()._map.get(Symbol.for(prop)).instance;
+    },
+    ownKeys: function () {
+      if (!_Platform) return [];
+      return [
+        ..._Platform
+          .getRegistry()
+          ._map.keys()
+          .map((k) => Symbol.keyFor(k)),
+      ];
+    },
+  },
+);
+window.Platform = Platform;
 
 let npb = document.querySelector("aside");
 
@@ -58,80 +105,6 @@ function getIsPlaying() {
   return playpause.getAttribute("d")?.toLowerCase()?.match(/z/g)?.length === 2;
 }
 
-const getLibraryData = () => {
-  return new Promise((resolve) => {
-    const scrollContainer = document.querySelector("nav .YourLibraryX [data-overlayscrollbars-viewport]");
-    const listContainer = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid])");
-    const libraryItems = new Map();
-
-    const parseItems = () => {
-      const rows = document.querySelectorAll("nav .YourLibraryX [role='presentation']:not([data-testid]) > [aria-rowindex]");
-      for (const p of rows) {
-        const index = p.getAttribute("aria-rowindex");
-        if (libraryItems.has(index)) continue;
-
-        const type = p
-          .querySelector("[aria-labelledby*='listrow-title']")
-          ?.getAttribute("aria-labelledby")
-          ?.match(/(?<=listrow-title-spotify:).+?(?=:)/i)?.[0];
-        const cover = p.querySelector("img")?.getAttribute("src");
-        const title = p.querySelector("[data-encore-id='listRowTitle']")?.textContent;
-        const subtitle = p.querySelector("[data-encore-id='listRowSubtitle']")?.textContent;
-        const isActive = !!p.querySelector("[data-encore-id='listRowTitle'][class*='accent']");
-
-        if (!type || !cover || !title || !subtitle) continue;
-
-        libraryItems.set(index, {
-          index,
-          type,
-          cover,
-          title,
-          subtitle,
-          isActive,
-        });
-      }
-    };
-
-    const scrollToNextWindow = () => {
-      const last = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid]) > [aria-rowindex]:last-child");
-      last?.scrollIntoView({ behavior: "instant", block: "start" });
-    };
-
-    let endTimer = null;
-    const checkListEnd = () => {
-      clearTimeout(endTimer);
-      endTimer = setTimeout(() => {
-        observer.disconnect();
-        resolve({
-          items: [...libraryItems.values()],
-        });
-      }, 300);
-    };
-
-    const observer = new MutationObserver(() => {
-      clearTimeout(endTimer);
-      parseItems();
-      scrollToNextWindow();
-      checkListEnd();
-    });
-    observer.observe(listContainer, {
-      childList: true,
-      subtree: true,
-    });
-
-    scrollContainer.addEventListener(
-      "scrollend",
-      () => {
-        parseItems();
-        scrollToNextWindow();
-        checkListEnd();
-      },
-      { once: true },
-    );
-    scrollContainer.scrollTo({ behavior: "instant", top: 0 });
-  });
-};
-
 const handlers = {
   getIsSignedIn: () => {
     return document.cookie.includes("sp_key");
@@ -156,53 +129,89 @@ const handlers = {
     return { success: false, error: "Inputs not found" };
   },
 
-  togglePlayback: () => {
-    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-    npb.querySelector("button[data-testid='control-button-playpause']").click();
-
+  resumePlayback: async () => {
+    await Platform.PlayerSDK.harmony.resume();
+  },
+  pausePlayback: async () => {
+    await Platform.PlayerSDK.harmony.pause();
+  },
+  skipTrack: async () => {
+    await Platform.PlayerSDK.harmony.nextTrack();
     return { success: true };
   },
-  skipTrack: () => {
-    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-    npb.querySelector("button[data-testid='control-button-skip-forward']").click();
+  previousTrack: async () => {
+    const { position } = await Platform.PlayerSDK.harmony.getCurrentState();
+    if (position <= 5000) {
+      await Platform.PlayerSDK.harmony.seek(0);
+    } else {
+      await Platform.PlayerSDK.harmony.previousTrack();
+    }
     return { success: true };
   },
-  previousTrack: () => {
-    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-    npb.querySelector("button[data-testid='control-button-skip-back']").click();
-    return { success: true };
-  },
-  setPlaybackPosition: (data) => {
+  setPlaybackPosition: async (data) => {
     const { position } = data;
-    if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-    npb.querySelector("div[data-testid='playback-progressbar'] input").value = position;
-    npb.querySelector("div[data-testid='playback-progressbar'] input").dispatchEvent(new Event("input", { bubbles: true }));
+    await Platform.PlayerSDK.harmony.seek(position);
     return { success: true };
   },
 
-  getLibraryData: () => {
-    return getLibraryData();
+  getLibraryData: async () => {
+    const [{ items }, { context }] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
+    const getSubtitle = (item) => {
+      switch (item.type) {
+        case "album":
+          return `Album • ${item.artists[0].name}`;
+        case "artist":
+          return "Artist";
+        case "playlist":
+          return `Playlist • ${item.owner.name}`;
+        default:
+          return "";
+      }
+    };
+    return {
+      items: items.map((item) => ({
+        uri: item.uri,
+        type: item.type,
+        cover: item.images.reduce((cur, prev) => (cur.width < prev.width ? cur : prev)).url,
+        title: item.name,
+        subtitle: getSubtitle(item),
+        isActive: item.uri === (context?.uri ?? ""),
+      })),
+    };
   },
 };
 
-ipc.onMessage.addListener(async (message) => {
-  console.log("Received message from app:", message);
-  const handler = handlers[message.type];
-  if (handler) {
-    try {
-      const result = await handler(message.data);
-      if (result !== undefined) {
-        ipc.postMessage({ type: `${message.type}Response`, data: result });
+const postMessage = (message) => {
+  window.postMessage(
+    {
+      direction: "from-page-script",
+      message,
+    },
+    "*",
+  );
+};
+window.addEventListener("message", async (event) => {
+  if (event.source === window && event?.data?.direction === "from-content-script") {
+    const { message } = event.data;
+
+    console.log("Received message from app:", message);
+    const handler = handlers[message.type];
+    if (handler) {
+      try {
+        const result = await handler(message.data);
+        if (result !== undefined) {
+          postMessage({ type: `${message.type}Response`, data: result });
+        }
+      } catch (e) {
+        postMessage({ type: `${message.type}Response`, error: e.message });
       }
-    } catch (e) {
-      ipc.postMessage({ type: `${message.type}Response`, error: e.message });
     }
   }
 });
 
 const npbObserver = new MutationObserver(() => {
   const state = getPlaybackState();
-  ipc.postMessage({ type: "playbackStateUpdate", data: state });
+  postMessage({ type: "playbackStateUpdate", data: state });
 });
 const npbFinder = new MutationObserver(() => {
   npb = document.querySelector("aside");
@@ -214,7 +223,7 @@ const npbFinder = new MutationObserver(() => {
 npbFinder.observe(document.documentElement, { childList: true, subtree: true });
 
 const postLibraryUpdate = async () => {
-  ipc.postMessage({ type: "getLibraryDataResponse", data: await getLibraryData() });
+  postMessage({ type: "getLibraryDataResponse", data: await handlers.getLibraryData() });
 };
 const libraryObserver = new MutationObserver(() => {
   postLibraryUpdate();

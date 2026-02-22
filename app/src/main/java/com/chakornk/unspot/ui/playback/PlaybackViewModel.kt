@@ -20,8 +20,12 @@ class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : Ba
 		}
 	}
 
-	fun togglePlayback() {
-		sendMessage(model.togglePlaybackMessage)
+	fun pausePlayback() {
+		sendMessage(model.pausePlaybackMessage)
+	}
+
+	fun resumePlayback() {
+		sendMessage(model.resumePlaybackMessage)
 	}
 
 	fun skipTrack() {

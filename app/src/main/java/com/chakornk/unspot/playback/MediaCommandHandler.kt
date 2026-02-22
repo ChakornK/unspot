@@ -13,11 +13,11 @@ class MediaCommandHandler(
 ) : ForwardingPlayer(player) {
 
 	override fun play() {
-		webExtensionManager.sendMessage(playbackModel.togglePlaybackMessage)
+		webExtensionManager.sendMessage(playbackModel.resumePlaybackMessage)
 	}
 
 	override fun pause() {
-		webExtensionManager.sendMessage(playbackModel.togglePlaybackMessage)
+		webExtensionManager.sendMessage(playbackModel.pausePlaybackMessage)
 	}
 
 	override fun seekToNext() {

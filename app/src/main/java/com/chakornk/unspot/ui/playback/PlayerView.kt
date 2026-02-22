@@ -76,6 +76,7 @@ import com.composables.icons.materialsymbols.outlinedfilled.Play_arrow
 import com.composables.icons.materialsymbols.outlinedfilled.Play_circle
 import com.composables.icons.materialsymbols.outlinedfilled.Skip_next
 import com.composables.icons.materialsymbols.outlinedfilled.Skip_previous
+import org.mozilla.gecko.GeckoThread.onPause
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -84,7 +85,8 @@ fun PlayerView(
 	state: PlaybackState,
 	isExpanded: Boolean,
 	onToggleExpanded: () -> Unit,
-	onTogglePlayback: () -> Unit,
+	onResumePlayback: () -> Unit,
+	onPausePlayback: () -> Unit,
 	onSkipTrack: () -> Unit,
 	onPreviousTrack: () -> Unit,
 	onSeek: (Long) -> Unit,
@@ -95,7 +97,8 @@ fun PlayerView(
 
 	NowPlayingBar(
 		state = state,
-		onTogglePlayback = onTogglePlayback,
+		onResumePlayback = onResumePlayback,
+		onPausePlayback = onPausePlayback,
 		onClick = onToggleExpanded,
 		onSkipTrack = onSkipTrack,
 		onPreviousTrack = onPreviousTrack,
@@ -105,7 +108,8 @@ fun PlayerView(
 		FullPlayer(
 			state = state,
 			onCollapse = onToggleExpanded,
-			onTogglePlayback = onTogglePlayback,
+			onResumePlayback = onResumePlayback,
+			onPausePlayback = onPausePlayback,
 			onSkipTrack = onSkipTrack,
 			onPreviousTrack = onPreviousTrack,
 			onSeek = onSeek,
@@ -214,7 +218,8 @@ private fun SwipeIndicator(
 private fun FullPlayer(
 	state: PlaybackState,
 	onCollapse: () -> Unit,
-	onTogglePlayback: () -> Unit,
+	onResumePlayback: () -> Unit,
+	onPausePlayback: () -> Unit,
 	onSkipTrack: () -> Unit,
 	onPreviousTrack: () -> Unit,
 	onSeek: (Long) -> Unit,
@@ -352,7 +357,13 @@ private fun FullPlayer(
 			Spacer(modifier = Modifier.height(32.dp))
 
 			IconButton(
-				onClick = onTogglePlayback, modifier = Modifier.size(80.dp)
+				onClick = {
+					if (state.isPlaying) {
+						onPausePlayback()
+					} else {
+						onResumePlayback()
+					}
+				}, modifier = Modifier.size(80.dp)
 			) {
 				Icon(
 					imageVector = if (state.isPlaying) {
@@ -375,7 +386,8 @@ private fun FullPlayer(
 @Composable
 private fun NowPlayingBar(
 	state: PlaybackState,
-	onTogglePlayback: () -> Unit,
+	onResumePlayback: () -> Unit,
+	onPausePlayback: () -> Unit,
 	onSkipTrack: () -> Unit,
 	onPreviousTrack: () -> Unit,
 	onClick: () -> Unit,
@@ -462,7 +474,13 @@ private fun NowPlayingBar(
 						)
 					}
 
-					IconButton(onClick = onTogglePlayback) {
+					IconButton(onClick = {
+						if (state.isPlaying) {
+							onPausePlayback()
+						} else {
+							onResumePlayback()
+						}
+					}) {
 						Icon(
 							imageVector = if (state.isPlaying) {
 								MaterialSymbols.OutlinedFilled.Pause
@@ -504,7 +522,8 @@ fun FullPlayerPreview() {
 			totalTime = 210000,
 		),
 			onCollapse = {},
-			onTogglePlayback = {},
+			onResumePlayback = {},
+			onPausePlayback = {},
 			onSkipTrack = {},
 			onPreviousTrack = {},
 			onSeek = {},
@@ -530,7 +549,8 @@ fun PlayerViewPreview() {
 			totalTime = 210000,
 		),
 			onToggleExpanded = {},
-			onTogglePlayback = {},
+			onResumePlayback = {},
+			onPausePlayback = {},
 			onSkipTrack = {},
 			onPreviousTrack = {},
 			onSeek = {},

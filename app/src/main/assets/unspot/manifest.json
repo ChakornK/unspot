@@ -11,17 +11,17 @@
   "content_scripts": [
     {
       "matches": ["*://*.spotify.com/*"],
-      "js": ["messaging.js"]
+      "js": ["messagingWrapper.js"]
     },
     {
       "matches": ["*://*.spotify.com/*"],
-      "js": ["adblock.js"],
+      "js": ["messaging.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
       "matches": ["*://*.spotify.com/*"],
-      "js": ["hook.js"],
+      "js": ["adblock.js"],
       "run_at": "document_start",
       "world": "MAIN"
     }

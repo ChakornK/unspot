@@ -13,7 +13,8 @@ data class PlaybackState(
 
 class PlaybackModel {
 	val playbackStateUpdateMessage = "playbackStateUpdate"
-	val togglePlaybackMessage = "togglePlayback"
+	val resumePlaybackMessage = "resumePlayback"
+	val pausePlaybackMessage = "pausePlayback"
 	val skipTrackMessage = "skipTrack"
 	val previousTrackMessage = "previousTrack"
 	val setPlaybackPositionMessage = "setPlaybackPosition"

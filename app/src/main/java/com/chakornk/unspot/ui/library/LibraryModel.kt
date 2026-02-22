@@ -3,7 +3,7 @@ package com.chakornk.unspot.ui.library
 import org.json.JSONArray
 
 data class LibraryItem(
-	val index: Int,
+	val uri: String,
 	val type: String,
 	val cover: String,
 	val title: String,
@@ -21,7 +21,7 @@ class LibraryModel {
 			val obj = data.optJSONObject(i) ?: continue
 			items.add(
 				LibraryItem(
-					index = obj.optInt("index"),
+					uri = obj.optString("uri"),
 					type = obj.optString("type"),
 					cover = obj.optString("cover"),
 					title = obj.optString("title"),

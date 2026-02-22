@@ -195,7 +195,8 @@ class MainActivity : ComponentActivity() {
 									Column {
 										PlayerView(
 											state = playbackViewModel.playbackState,
-											onTogglePlayback = { playbackViewModel.togglePlayback() },
+											onResumePlayback = { playbackViewModel.resumePlayback() },
+											onPausePlayback = { playbackViewModel.pausePlayback() },
 											onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
 											onSkipTrack = { playbackViewModel.skipTrack() },
 											onPreviousTrack = { playbackViewModel.previousTrack() },
