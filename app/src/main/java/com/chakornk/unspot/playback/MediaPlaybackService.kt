@@ -46,17 +46,25 @@ class MediaPlaybackService : MediaSessionService() {
 
 		serviceScope.launch {
 			webExtensionManager.messages.collect { message ->
-				if (message.type == playbackModel.playbackStateUpdateMessage) {
-					message.data?.let { data ->
-						val state = playbackModel.parsePlaybackState(data)
-						geckoPlayer.updateMediaItem(
-							state.isPlaying,
-							state.title,
-							state.artist,
-							state.albumArt,
-							state.currentTime,
-							state.totalTime
-						)
+				when (message.type) {
+					playbackModel.playbackStateUpdateMessage -> {
+						message.data?.let {
+							val state = playbackModel.parsePlaybackState(it)
+							geckoPlayer.updatePlaybackState(
+								state.isPlaying,
+								state.title,
+								state.artist,
+								state.albumArt,
+								state.currentTime,
+								state.totalTime
+							)
+						}
+					}
+					playbackModel.playbackProgressUpdateMessage -> {
+						message.data?.let {
+							val state = playbackModel.parsePlaybackProgress(it)
+							geckoPlayer.updatePlaybackProgress(state.currentTime)
+						}
 					}
 				}
 			}

@@ -41,7 +41,7 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 		).build()
 	}
 
-	fun updateMediaItem(
+	fun updatePlaybackState(
 		isPlaying: Boolean,
 		title: String,
 		artist: String,
@@ -62,6 +62,11 @@ class GeckoPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
 			)
 		}
 		isCurrentlyPlaying = isPlaying
+		currentPosition = currentTime
+		invalidateState()
+	}
+
+	fun updatePlaybackProgress(currentTime: Long) {
 		currentPosition = currentTime
 		invalidateState()
 	}

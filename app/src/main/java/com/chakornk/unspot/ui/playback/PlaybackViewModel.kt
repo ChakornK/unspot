@@ -17,6 +17,13 @@ class PlaybackViewModel(private val model: PlaybackModel = PlaybackModel()) : Ba
 					playbackState = model.parsePlaybackState(it)
 				}
 			}
+			model.playbackProgressUpdateMessage -> {
+				message.data?.let {
+					playbackState = playbackState.copy(
+						currentTime = model.parsePlaybackProgress(it).currentTime
+					)
+				}
+			}
 		}
 	}
 

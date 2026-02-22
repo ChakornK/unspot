@@ -13,6 +13,7 @@ data class PlaybackState(
 
 class PlaybackModel {
 	val playbackStateUpdateMessage = "playbackStateUpdate"
+	val playbackProgressUpdateMessage = "playbackProgressUpdate"
 	val resumePlaybackMessage = "resumePlayback"
 	val pausePlaybackMessage = "pausePlayback"
 	val skipTrackMessage = "skipTrack"
@@ -27,6 +28,12 @@ class PlaybackModel {
 			isPlaying = data.optBoolean("isPlaying", false),
 			currentTime = data.optLong("currentTime", 0L),
 			totalTime = data.optLong("totalTime", 0L)
+		)
+	}
+
+	fun parsePlaybackProgress(data: JSONObject): PlaybackState {
+		return PlaybackState(
+			currentTime = data.optLong("currentTime", 0L)
 		)
 	}
 

@@ -77,34 +77,6 @@ function typeText(input, text) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function getPlaybackState() {
-  if (!npb?.querySelector) return { success: false, error: "Now playing bar not found" };
-
-  const title = npb.querySelector("div[data-testid='context-item-info-title'] a")?.innerText ?? "";
-  const artist = npb.querySelector("div[data-testid='context-item-info-subtitles'] a")?.innerText ?? "";
-  const albumArtSm = npb.querySelector("button[data-testid='cover-art-button'] img")?.src ?? "";
-  const albumArt = albumArtSm.replace(/(?<=0000)[0-9a-f]{4}/, "b273");
-  const isPlaying = getIsPlaying();
-
-  const playProgressBar = npb.querySelector("div[data-testid='playback-progressbar'] input");
-  const currentTime = +playProgressBar?.getAttribute("value") ?? 0;
-  const totalTime = +playProgressBar?.getAttribute("max") ?? 0;
-
-  return {
-    title,
-    artist,
-    albumArt,
-    isPlaying,
-    currentTime,
-    totalTime,
-  };
-}
-function getIsPlaying() {
-  const playpause = npb.querySelector("button[data-testid='control-button-playpause'] svg > path");
-  if (!playpause) return false;
-  return playpause.getAttribute("d")?.toLowerCase()?.match(/z/g)?.length === 2;
-}
-
 const handlers = {
   getIsSignedIn: () => {
     return document.cookie.includes("sp_key");
@@ -127,6 +99,26 @@ const handlers = {
       return { success: true };
     }
     return { success: false, error: "Inputs not found" };
+  },
+
+  getPlaybackState: async () => {
+    const state = await Platform.PlayerSDK.harmony.getCurrentState();
+    if (!state) return null;
+    return {
+      title: state.track_window.current_track.name,
+      artist: state.track_window.current_track.artists.map((a) => a.name).join(", "),
+      albumArt: state.track_window.current_track.album.images.reduce((acc, img) => (img.height > acc.height ? img : acc)).url,
+      isPlaying: !state.paused,
+      currentTime: state.position,
+      totalTime: state.track_window.current_track.duration_ms,
+    };
+  },
+  getPlaybackProgress: async () => {
+    const state = await Platform.PlayerSDK.harmony.getCurrentState();
+    if (!state) return null;
+    return {
+      currentTime: state.position,
+    };
   },
 
   resumePlayback: async () => {
@@ -156,6 +148,7 @@ const handlers = {
 
   getLibraryData: async () => {
     const [{ items }, { context }] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
+    if (items === null || context === null) return null;
     const getSubtitle = (item) => {
       switch (item.type) {
         case "album":
@@ -172,7 +165,7 @@ const handlers = {
       items: items.map((item) => ({
         uri: item.uri,
         type: item.type,
-        cover: item.images.reduce((cur, prev) => (cur.width < prev.width ? cur : prev)).url,
+        cover: item.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
         title: item.name,
         subtitle: getSubtitle(item),
         isActive: item.uri === (context?.uri ?? ""),
@@ -209,31 +202,49 @@ window.addEventListener("message", async (event) => {
   }
 });
 
-const npbObserver = new MutationObserver(() => {
-  const state = getPlaybackState();
-  postMessage({ type: "playbackStateUpdate", data: state });
-});
-const npbFinder = new MutationObserver(() => {
-  npb = document.querySelector("aside");
-  if (npb) {
-    npbObserver.observe(npb, { childList: true, subtree: true, attributes: true });
-    npbFinder.disconnect();
-  }
-});
-npbFinder.observe(document.documentElement, { childList: true, subtree: true });
-
 const postLibraryUpdate = async () => {
-  postMessage({ type: "getLibraryDataResponse", data: await handlers.getLibraryData() });
+  const result = await handlers.getLibraryData();
+  if (!result) return;
+  postMessage({ type: "getLibraryDataResponse", data: result });
 };
-const libraryObserver = new MutationObserver(() => {
-  postLibraryUpdate();
-});
-const libraryFinder = new MutationObserver(() => {
-  const library = document.querySelector("nav .YourLibraryX [role='presentation']:not([data-testid])");
-  if (library) {
-    libraryObserver.observe(library, { childList: true, subtree: true });
-    libraryFinder.disconnect();
-    postLibraryUpdate();
+(async () => {
+  while (!Platform?.LibraryAPI?._events?._emitter?._listeners?.update) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
-});
-libraryFinder.observe(document.documentElement, { childList: true, subtree: true });
+  Platform.LibraryAPI._events._emitter._listeners.update.push({
+    listener: postLibraryUpdate,
+    options: {},
+  });
+  postLibraryUpdate();
+})();
+
+(async () => {
+  while (!Platform?.PlayerSDK?.harmony?._listeners?.player_initialization_done) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  Platform.PlayerSDK.harmony._listeners.player_initialization_done.push({
+    listener: async () => {
+      const state = await handlers.getPlaybackState();
+      if (!state) return;
+      postMessage({ type: "playbackStateUpdate", data: state });
+      postLibraryUpdate();
+    },
+    options: {},
+  });
+  Platform.PlayerSDK.harmony._listeners.state_changed.push({
+    listener: async () => {
+      const state = await handlers.getPlaybackState();
+      if (!state) return;
+      postMessage({ type: "playbackStateUpdate", data: state });
+    },
+    options: {},
+  });
+  Platform.PlayerSDK.harmony._listeners.progress.push({
+    listener: async () => {
+      const progress = await handlers.getPlaybackProgress();
+      if (!progress) return;
+      postMessage({ type: "playbackProgressUpdate", data: progress });
+    },
+    options: {},
+  });
+})();
