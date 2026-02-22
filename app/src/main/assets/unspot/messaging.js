@@ -148,7 +148,7 @@ const handlers = {
 
   getLibraryData: async () => {
     const [{ items }, { context }] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
-    if (items === null || context === null) return null;
+    if (items === null) return null;
     const getSubtitle = (item) => {
       switch (item.type) {
         case "album":
@@ -227,7 +227,6 @@ const postLibraryUpdate = async () => {
       const state = await handlers.getPlaybackState();
       if (!state) return;
       postMessage({ type: "playbackStateUpdate", data: state });
-      postLibraryUpdate();
     },
     options: {},
   });
@@ -236,6 +235,7 @@ const postLibraryUpdate = async () => {
       const state = await handlers.getPlaybackState();
       if (!state) return;
       postMessage({ type: "playbackStateUpdate", data: state });
+      postLibraryUpdate();
     },
     options: {},
   });
