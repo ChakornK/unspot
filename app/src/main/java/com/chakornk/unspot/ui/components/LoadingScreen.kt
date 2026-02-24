@@ -21,6 +21,6 @@ fun LoadingScreen() {
 	) {
 		CircularProgressIndicator()
 		Spacer(modifier = Modifier.height(16.dp))
-		Text("Loading Unspot...")
+		Text("Loading...")
 	}
 }

@@ -39,10 +39,12 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.chakornk.unspot.gecko.WebExtensionManager
 import com.chakornk.unspot.playback.MediaPlaybackService
 import com.chakornk.unspot.ui.auth.AuthViewModel
@@ -55,6 +57,8 @@ import com.chakornk.unspot.ui.navigation.Tab
 import com.chakornk.unspot.ui.navigation.View
 import com.chakornk.unspot.ui.playback.PlaybackViewModel
 import com.chakornk.unspot.ui.playback.PlayerView
+import com.chakornk.unspot.ui.playlist.PlaylistScreen
+import com.chakornk.unspot.ui.playlist.PlaylistViewModel
 import com.chakornk.unspot.ui.search.SearchScreen
 import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.chakornk.unspot.ui.welcome.WelcomeScreen
@@ -283,7 +287,26 @@ class MainActivity : ComponentActivity() {
 										}
 										LibraryScreen(
 											viewModel = libraryViewModel,
-											onSetTopBar = { content -> topBarContents[View.Library.route] = content }
+											onSetTopBar = { content -> topBarContents[View.Library.route] = content },
+											onNavigateToPlaylist = { uri ->
+												navController.navigate(View.Playlist.createRoute(uri))
+											}
+										)
+									}
+									composable(
+										View.Playlist.route,
+										arguments = listOf(navArgument("uri") { type = NavType.StringType })
+									) { backStackEntry ->
+										val uri = backStackEntry.arguments?.getString("uri") ?: ""
+										val playlistViewModel: PlaylistViewModel = viewModel()
+										LaunchedEffect(Unit) {
+											playlistViewModel.attachManager(webExtensionManager)
+										}
+										PlaylistScreen(
+											uri = uri,
+											viewModel = playlistViewModel,
+											onBack = { navController.popBackStack() },
+											onSetTopBar = { content -> topBarContents[View.Playlist.route] = content }
 										)
 									}
 								}

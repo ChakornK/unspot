@@ -25,6 +25,10 @@ sealed class View(
 	)
 
 	object Library : View("library", "Library")
+
+	object Playlist : View("playlist/{uri}", "Playlist") {
+		fun createRoute(uri: String) = "playlist/$uri"
+	}
 }
 
 sealed class Tab(

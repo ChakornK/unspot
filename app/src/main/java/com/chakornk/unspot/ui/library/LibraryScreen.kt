@@ -52,7 +52,9 @@ import com.composables.icons.materialsymbols.outlinedfilled.Volume_up
 
 @Composable
 fun LibraryScreen(
-	viewModel: LibraryViewModel, onSetTopBar: (@Composable () -> Unit) -> Unit
+	viewModel: LibraryViewModel,
+	onSetTopBar: (@Composable () -> Unit) -> Unit,
+	onNavigateToPlaylist: (String) -> Unit
 ) {
 	val items = viewModel.filteredItems
 	var isSearchActive by remember { mutableStateOf(false) }
@@ -78,7 +80,11 @@ fun LibraryScreen(
 
 	LazyColumn(modifier = Modifier.fillMaxSize()) {
 		items(items, key = { it.uri }) { item ->
-			LibraryItemRow(item, onClick = { })
+			LibraryItemRow(item, onClick = {
+				if (item.type == "playlist") {
+					onNavigateToPlaylist(item.uri)
+				}
+			})
 		}
 	}
 }
