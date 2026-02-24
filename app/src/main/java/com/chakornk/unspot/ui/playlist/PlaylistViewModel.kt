@@ -24,8 +24,24 @@ class PlaylistViewModel(private val model: PlaylistModel = PlaylistModel()) : Ba
 		if (currentUri == uri) return
 		currentUri = uri
 		isLoading = true
+		playlist = null
+		playlistContent = null
 		sendMessage(model.getPlaylistMessage, JSONObject().put("uri", uri))
 		sendMessage(model.getPlaylistContentMessage, JSONObject().put("uri", uri).put("offset", 0))
+	}
+
+	fun loadMoreContent() {
+		val uri = currentUri ?: return
+		val content = playlistContent ?: return
+		val total = playlist?.length ?: content.totalLength
+
+		if (!isLoading && content.items.size < total) {
+			isLoading = true
+			sendMessage(model.getPlaylistContentMessage, JSONObject().apply {
+				put("uri", uri)
+				put("offset", content.items.size)
+			})
+		}
 	}
 
 	fun playTrack(trackUri: String) {
@@ -46,7 +62,18 @@ class PlaylistViewModel(private val model: PlaylistModel = PlaylistModel()) : Ba
 
 			model.getPlaylistContentResponse -> {
 				message.data?.let {
-					playlistContent = model.parsePlaylistContent(it)
+					val newContent = model.parsePlaylistContent(it)
+					val currentContent = playlistContent
+
+					if (currentContent == null || newContent.offset == 0) {
+						playlistContent = newContent
+					} else {
+						val mergedItems =
+							(currentContent.items + newContent.items).distinctBy { item -> item.index }
+								.sortedBy { item -> item.index }
+						playlistContent = newContent.copy(items = mergedItems)
+					}
+
 					if (playlist != null) isLoading = false
 				}
 			}

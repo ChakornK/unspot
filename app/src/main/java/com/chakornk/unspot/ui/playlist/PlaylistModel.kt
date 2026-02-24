@@ -13,19 +13,15 @@ data class Playlist(
 )
 
 data class Collaborator(
-	val name: String,
-	val uri: String,
-	val image: String
+	val name: String, val uri: String, val image: String
 )
 
 data class PlaylistContent(
-	val items: List<PlaylistItem>,
-	val offset: Int,
-	val limit: Int,
-	val totalLength: Int
+	val items: List<PlaylistItem>, val offset: Int, val limit: Int, val totalLength: Int
 )
 
 data class PlaylistItem(
+	val index: Int,
 	val uri: String,
 	val type: String,
 	val cover: String,
@@ -49,9 +45,7 @@ class PlaylistModel {
 				val obj = collaboratorsArray.getJSONObject(i)
 				collaborators.add(
 					Collaborator(
-						name = obj.optString("name"),
-						uri = obj.optString("uri"),
-						image = obj.optString("image")
+						name = obj.optString("name"), uri = obj.optString("uri"), image = obj.optString("image")
 					)
 				)
 			}
@@ -76,6 +70,7 @@ class PlaylistModel {
 				val obj = itemsArray.getJSONObject(i)
 				items.add(
 					PlaylistItem(
+						index = obj.optInt("index"),
 						uri = obj.optString("uri"),
 						type = obj.optString("type"),
 						cover = obj.optString("cover"),

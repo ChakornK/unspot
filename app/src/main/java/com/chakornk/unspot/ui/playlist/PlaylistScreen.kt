@@ -86,6 +86,19 @@ fun PlaylistScreen(
 		}
 	}
 
+	val shouldLoadMore by remember {
+		derivedStateOf {
+			val lastVisibleItem = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()
+			lastVisibleItem != null && lastVisibleItem.index >= lazyListState.layoutInfo.totalItemsCount - 10
+		}
+	}
+
+	LaunchedEffect(shouldLoadMore) {
+		if (shouldLoadMore) {
+			viewModel.loadMoreContent()
+		}
+	}
+
 	Box(modifier = Modifier.fillMaxSize()) {
 		if (viewModel.isLoading && viewModel.playlist == null) {
 			LoadingScreen()
@@ -101,7 +114,7 @@ fun PlaylistScreen(
 				}
 
 				content?.items?.let { items ->
-					items(items) { item ->
+					items(items, key = { it.index }) { item ->
 						PlaylistItemRow(item, onClick = {
 							viewModel.playTrack(item.uri)
 						})
@@ -285,9 +298,9 @@ fun PlaylistScreenPreview() {
 			collaborators = emptyList()
 		)
 		val mockItems = listOf(
-			PlaylistItem("1", "track", "https://example.com/1.jpg", "Track 1", "Artist 1", 180000),
-			PlaylistItem("2", "track", "https://example.com/2.jpg", "Track 2", "Artist 2", 210000),
-			PlaylistItem("3", "track", "https://example.com/3.jpg", "Track 3", "Artist 3", 150000),
+			PlaylistItem(0, "uri1", "track", "https://example.com/1.jpg", "Track 1", "Artist 1", 180000),
+			PlaylistItem(1, "uri2", "track", "https://example.com/2.jpg", "Track 2", "Artist 2", 210000),
+			PlaylistItem(2, "uri3", "track", "https://example.com/3.jpg", "Track 3", "Artist 3", 150000),
 		)
 
 		Box(modifier = Modifier.fillMaxSize()) {
@@ -321,9 +334,9 @@ fun PlaylistScreenCollapsedPreview() {
 			collaborators = emptyList()
 		)
 		val mockItems = listOf(
-			PlaylistItem("1", "track", "https://example.com/1.jpg", "Track 1", "Artist 1", 180000),
-			PlaylistItem("2", "track", "https://example.com/2.jpg", "Track 2", "Artist 2", 210000),
-			PlaylistItem("3", "track", "https://example.com/3.jpg", "Track 3", "Artist 3", 150000),
+			PlaylistItem(0, "uri1", "track", "https://example.com/1.jpg", "Track 1", "Artist 1", 180000),
+			PlaylistItem(1, "uri2", "track", "https://example.com/2.jpg", "Track 2", "Artist 2", 210000),
+			PlaylistItem(2, "uri3", "track", "https://example.com/3.jpg", "Track 3", "Artist 3", 150000),
 		)
 
 		Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {

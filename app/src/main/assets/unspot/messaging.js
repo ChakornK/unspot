@@ -205,7 +205,7 @@ const handlers = {
   getPlaylistContent: async ({ uri, offset }) => {
     const contents = await Platform.PlaylistAPI.getPlaylistContents(uri, { limit: 50, offset: offset ?? 0 });
     contents.items = contents.items.map((item) => ({
-      index: item.playIndex,
+      index: offset + item.playIndex,
       uri: item.uri,
       type: item.type,
       cover: item.album.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
