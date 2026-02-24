@@ -178,6 +178,36 @@ const handlers = {
       })),
     };
   },
+
+  getPlaylist: async ({ uri }) => {
+    const playlist = await Platform.PlaylistAPI.getPlaylistMetadata(uri);
+    return {
+      uri: playlist.uri,
+      cover: playlist.images.reduce((acc, img) => (img.height > acc.height ? img : acc)).url,
+      title: playlist.name,
+      description: playlist.description,
+      duration: playlist.duration.milliseconds,
+      length: playlist.unfilteredTotalLength,
+      collaborators: playlist.collaborators.items.map((c) => ({
+        name: c.user.displayName,
+        uri: c.user.uri,
+        image: c.user.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
+      })),
+    };
+  },
+  getPlaylistContent: async ({ uri, offset }) => {
+    const contents = await Platform.PlaylistAPI.getPlaylistContents(uri, { limit: 50, offset: offset ?? 0 });
+    contents.items = contents.items.map((item) => ({
+      index: item.playIndex,
+      uri: item.uri,
+      type: item.type,
+      cover: item.album.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
+      title: item.name,
+      subtitle: item.artists.map((a) => a.name).join(", "),
+      duration: item.duration.milliseconds,
+    }));
+    return contents;
+  },
 };
 
 const postMessage = (message) => {
