@@ -120,6 +120,17 @@ fun PlaylistScreen(
 						})
 					}
 				}
+
+				if (viewModel.isLoading) {
+					val total = playlist?.length ?: content?.totalLength ?: 0
+					val loadedCount = content?.items?.size ?: 0
+					val remaining = total - loadedCount
+					val placeholderCount = if (content == null) 10 else remaining
+
+					items(placeholderCount) {
+						PlaylistItemPlaceholder()
+					}
+				}
 			}
 
 			DynamicTopAppBar(
@@ -273,6 +284,43 @@ fun PlaylistItemRow(item: PlaylistItem, onClick: () -> Unit) {
 	}
 }
 
+@Composable
+fun PlaylistItemPlaceholder() {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = 16.dp, vertical = 8.dp),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		Box(
+			modifier = Modifier
+				.size(48.dp)
+				.clip(RoundedCornerShape(4.dp))
+				.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+		)
+
+		Spacer(modifier = Modifier.width(16.dp))
+
+		Column(modifier = Modifier.weight(1f)) {
+			Box(
+				modifier = Modifier
+					.width(150.dp)
+					.height(16.dp)
+					.clip(RoundedCornerShape(4.dp))
+					.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+			)
+			Spacer(modifier = Modifier.height(12.dp))
+			Box(
+				modifier = Modifier
+					.width(100.dp)
+					.height(12.dp)
+					.clip(RoundedCornerShape(4.dp))
+					.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+			)
+		}
+	}
+}
+
 private fun formatDuration(ms: Long): String {
 	val totalSeconds = ms / 1000
 	val minutes = totalSeconds / 60
@@ -311,6 +359,9 @@ fun PlaylistScreenPreview() {
 				items(mockItems) { item ->
 					PlaylistItemRow(item, onClick = {})
 				}
+				items(3) {
+					PlaylistItemPlaceholder()
+				}
 			}
 
 			DynamicTopAppBar(
@@ -346,6 +397,9 @@ fun PlaylistScreenCollapsedPreview() {
 				}
 				items(mockItems) { item ->
 					PlaylistItemRow(item, onClick = {})
+				}
+				items(3) {
+					PlaylistItemPlaceholder()
 				}
 			}
 
