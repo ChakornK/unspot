@@ -151,6 +151,13 @@ const handlers = {
     await Platform.PlayerSDK.harmony.seek(position);
     return { success: true };
   },
+  play: async ({ contextUri, trackUri }) => {
+    await Platform.PlayerAPI._harmony.playURI(contextUri, null, {
+      contextURI: contextUri,
+      trackURI: trackUri,
+    });
+    return { success: true };
+  },
 
   getLibraryData: async () => {
     const [{ items }, { context }] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);

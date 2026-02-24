@@ -28,6 +28,13 @@ class PlaylistViewModel(private val model: PlaylistModel = PlaylistModel()) : Ba
 		sendMessage(model.getPlaylistContentMessage, JSONObject().put("uri", uri).put("offset", 0))
 	}
 
+	fun playTrack(trackUri: String) {
+		sendMessage(model.playMessage, JSONObject().apply {
+			put("contextUri", playlist!!.uri)
+			put("trackUri", trackUri)
+		})
+	}
+
 	override fun handleMessage(message: WebExtensionMessage) {
 		when (message.type) {
 			model.getPlaylistResponse -> {
@@ -36,6 +43,7 @@ class PlaylistViewModel(private val model: PlaylistModel = PlaylistModel()) : Ba
 					if (playlistContent != null) isLoading = false
 				}
 			}
+
 			model.getPlaylistContentResponse -> {
 				message.data?.let {
 					playlistContent = model.parsePlaylistContent(it)

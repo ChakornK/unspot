@@ -102,7 +102,9 @@ fun PlaylistScreen(
 
 				content?.items?.let { items ->
 					items(items) { item ->
-						PlaylistItemRow(item, onClick = { })
+						PlaylistItemRow(item, onClick = {
+							viewModel.playTrack(item.uri)
+						})
 					}
 				}
 			}

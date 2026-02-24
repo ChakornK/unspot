@@ -39,6 +39,7 @@ class PlaylistModel {
 	val getPlaylistResponse = "getPlaylistResponse"
 	val getPlaylistContentMessage = "getPlaylistContent"
 	val getPlaylistContentResponse = "getPlaylistContentResponse"
+	val playMessage = "play"
 
 	fun parsePlaylist(data: JSONObject): Playlist {
 		val collaboratorsArray = data.optJSONArray("collaborators")
