@@ -291,3 +291,16 @@ const postLibraryUpdate = async () => {
     options: {},
   });
 })();
+
+(async () => {
+  while (!Platform?.PlaybackAPI?._harmony?._client?._deviceDescriptor) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  const originalDeviceDescriptor = Platform.PlaybackAPI._harmony._client._deviceDescriptor;
+  Platform.PlaybackAPI._harmony._client._deviceDescriptor = new Promise((resolve) => {
+    originalDeviceDescriptor.then((deviceDescriptor) => {
+      deviceDescriptor._name = "Unspot";
+      resolve(deviceDescriptor);
+    });
+  });
+})();
