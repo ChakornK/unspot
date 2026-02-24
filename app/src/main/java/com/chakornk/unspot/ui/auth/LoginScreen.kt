@@ -59,7 +59,7 @@ fun LoginContent(onLogin: (String, String) -> Unit) {
 			singleLine = true,
 			modifier = Modifier
 				.fillMaxWidth()
-				.semantics { contentType = ContentType.EmailAddress },
+				.semantics { contentType = ContentType.Username },
 			keyboardOptions = KeyboardOptions.Default.copy(
 				keyboardType = KeyboardType.Email,
 				imeAction = ImeAction.Next,
