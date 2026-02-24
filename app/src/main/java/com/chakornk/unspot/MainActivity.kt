@@ -185,53 +185,49 @@ class MainActivity : ComponentActivity() {
 							Box(modifier = Modifier.padding(innerPadding)) { LoadingScreen() }
 						}
 					} else {
-						Scaffold(
-							modifier = Modifier.fillMaxSize(),
-							topBar = {
-								if (isLoggedIn) {
-									currentRoute?.let { route ->
-										topBarContents[route]?.invoke()
-									}
+						Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
+							if (isLoggedIn) {
+								currentRoute?.let { route ->
+									topBarContents[route]?.invoke()
 								}
-							},
-							bottomBar = {
-								if (isLoggedIn) {
-									Column {
-										PlayerView(
-											state = playbackViewModel.playbackState,
-											onResumePlayback = { playbackViewModel.resumePlayback() },
-											onPausePlayback = { playbackViewModel.pausePlayback() },
-											onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
-											onSkipTrack = { playbackViewModel.skipTrack() },
-											onPreviousTrack = { playbackViewModel.previousTrack() },
-											onSeek = { playbackViewModel.seekTo(it) },
-											isExpanded = isPlayerExpanded
-										)
-										NavigationBar {
-											tabs.forEach { tab ->
-												NavigationBarItem(
-													icon = {
-														Icon(
-															if (currentRoute == tab.route) tab.iconSelected else tab.icon,
-															tab.label
-														)
-													},
-													label = { Text(tab.label) },
-													selected = currentRoute == tab.route,
-													onClick = {
-														navController.navigate(tab.route) {
-															popUpTo(navController.graph.startDestinationId) {
-																saveState = true
-															}
-															launchSingleTop = true
-															restoreState = true
+							}
+						}, bottomBar = {
+							if (isLoggedIn) {
+								Column {
+									PlayerView(
+										state = playbackViewModel.playbackState,
+										onResumePlayback = { playbackViewModel.resumePlayback() },
+										onPausePlayback = { playbackViewModel.pausePlayback() },
+										onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
+										onSkipTrack = { playbackViewModel.skipTrack() },
+										onPreviousTrack = { playbackViewModel.previousTrack() },
+										onSeek = { playbackViewModel.seekTo(it) },
+										isExpanded = isPlayerExpanded
+									)
+									NavigationBar {
+										tabs.forEach { tab ->
+											NavigationBarItem(
+												icon = {
+												Icon(
+													if (currentRoute == tab.route) tab.iconSelected else tab.icon, tab.label
+												)
+											},
+												label = { Text(tab.label) },
+												selected = currentRoute == tab.route,
+												onClick = {
+													navController.navigate(tab.route) {
+														popUpTo(navController.graph.startDestinationId) {
+															saveState = true
 														}
-													})
-											}
+														launchSingleTop = true
+														restoreState = true
+													}
+												})
 										}
 									}
 								}
-							}) { innerPadding ->
+							}
+						}) { innerPadding ->
 							Box(modifier = Modifier.padding(innerPadding)) {
 								NavHost(
 									navController = navController,
@@ -290,8 +286,7 @@ class MainActivity : ComponentActivity() {
 											onSetTopBar = { content -> topBarContents[View.Library.route] = content },
 											onNavigateToPlaylist = { uri ->
 												navController.navigate(View.Playlist.createRoute(uri))
-											}
-										)
+											})
 									}
 									composable(
 										View.Playlist.route,
@@ -306,8 +301,7 @@ class MainActivity : ComponentActivity() {
 											uri = uri,
 											viewModel = playlistViewModel,
 											onBack = { navController.popBackStack() },
-											onSetTopBar = { content -> topBarContents[View.Playlist.route] = content }
-										)
+											onSetTopBar = { content -> topBarContents[View.Playlist.route] = content })
 									}
 								}
 							}
