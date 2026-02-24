@@ -79,7 +79,7 @@ fun SpotifyWebView(
 	val sessionSettings = GeckoSessionSettings.Builder().usePrivateMode(false)
 		.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 		.userAgentMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
-		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0")
+		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0")
 		.useTrackingProtection(false).suspendMediaWhenInactive(false).build()
 
 	val session = remember { GeckoSession(sessionSettings) }
