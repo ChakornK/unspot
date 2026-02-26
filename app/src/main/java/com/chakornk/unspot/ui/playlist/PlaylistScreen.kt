@@ -1,16 +1,22 @@
 package com.chakornk.unspot.ui.playlist
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,7 +31,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -49,18 +54,20 @@ import com.chakornk.unspot.ui.theme.ThemePreview
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Arrow_back
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PlaylistScreen(
 	uri: String,
 	viewModel: PlaylistViewModel,
-	onBack: () -> Unit,
-	onSetTopBar: (@Composable () -> Unit) -> Unit
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+	onBack: () -> Unit
 ) {
 	val lazyListState = rememberLazyListState()
 	val density = LocalDensity.current
 
-	val minHeight = 64.dp
-	val maxHeight = 320.dp
+	val minHeight = WindowInsets.statusBars.getTop(density).dp
+	val maxHeight = 256.dp + WindowInsets.statusBars.getTop(density).dp
 
 	val scrollOffset by remember {
 		derivedStateOf {
@@ -74,16 +81,6 @@ fun PlaylistScreen(
 
 	LaunchedEffect(uri) {
 		viewModel.loadPlaylist(uri)
-	}
-
-	LaunchedEffect(Unit) {
-		onSetTopBar { }
-	}
-
-	DisposableEffect(Unit) {
-		onDispose {
-			onSetTopBar {}
-		}
 	}
 
 	val shouldLoadMore by remember {
@@ -133,13 +130,19 @@ fun PlaylistScreen(
 				}
 			}
 
-			DynamicTopAppBar(
-				playlist = playlist,
-				progress = progress,
-				onBack = onBack,
-				maxHeight = maxHeight,
-				minHeight = minHeight
-			)
+			with(sharedTransitionScope) {
+				DynamicTopAppBar(
+					playlist = playlist,
+					progress = progress,
+					onBack = onBack,
+					maxHeight = maxHeight,
+					minHeight = minHeight,
+					modifier = Modifier.sharedBounds(
+						rememberSharedContentState(key = "top-bar"),
+						animatedVisibilityScope = animatedVisibilityScope
+					)
+				)
+			}
 		}
 	}
 }
@@ -147,21 +150,26 @@ fun PlaylistScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DynamicTopAppBar(
-	playlist: Playlist?, progress: Float, onBack: () -> Unit, maxHeight: Dp, minHeight: Dp
+	playlist: Playlist?,
+	progress: Float,
+	onBack: () -> Unit,
+	maxHeight: Dp,
+	minHeight: Dp,
+	modifier: Modifier = Modifier
 ) {
 	val density = LocalDensity.current
 	val currentHeight = maxHeight - (maxHeight - minHeight) * progress
 
 	Surface(
-		modifier = Modifier
+		modifier = modifier
 			.fillMaxWidth()
 			.height(currentHeight),
-		color = MaterialTheme.colorScheme.surface.copy(alpha = progress),
+		color = MaterialTheme.colorScheme.surface,
 	) {
 		Box(
 			modifier = Modifier
 				.fillMaxSize()
-				.padding(top = 8.dp)
+				.padding(WindowInsets.statusBars.asPaddingValues()),
 		) {
 			IconButton(
 				onClick = onBack,

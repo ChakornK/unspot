@@ -10,12 +10,15 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -26,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -132,6 +134,7 @@ fun SpotifyWebView(
 }
 
 class MainActivity : ComponentActivity() {
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -165,7 +168,6 @@ class MainActivity : ComponentActivity() {
 			val isCheckingAuth = authViewModel.isCheckingAuth
 
 			var isPlayerExpanded by remember { mutableStateOf(false) }
-			val topBarContents = remember { mutableStateMapOf<String, @Composable () -> Unit>() }
 
 			val tabs = listOf(
 				Tab.Home, Tab.Search, Tab.Library
@@ -175,7 +177,6 @@ class MainActivity : ComponentActivity() {
 
 			UnspotTheme {
 				Box(modifier = Modifier.fillMaxSize()) {
-					// Always keep SpotifyWebView active in the background to handle page loading and auth checks
 					Box(modifier = Modifier.alpha(0f)) {
 						SpotifyWebView(geckoRuntime, authViewModel, webExtensionManager)
 					}
@@ -185,53 +186,52 @@ class MainActivity : ComponentActivity() {
 							Box(modifier = Modifier.padding(innerPadding)) { LoadingScreen() }
 						}
 					} else {
-						Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-							if (isLoggedIn) {
-								currentRoute?.let { route ->
-									topBarContents[route]?.invoke()
-								}
-							}
-						}, bottomBar = {
-							if (isLoggedIn) {
-								Column {
-									PlayerView(
-										state = playbackViewModel.playbackState,
-										onResumePlayback = { playbackViewModel.resumePlayback() },
-										onPausePlayback = { playbackViewModel.pausePlayback() },
-										onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
-										onSkipTrack = { playbackViewModel.skipTrack() },
-										onPreviousTrack = { playbackViewModel.previousTrack() },
-										onSeek = { playbackViewModel.seekTo(it) },
-										isExpanded = isPlayerExpanded
-									)
-									NavigationBar {
-										tabs.forEach { tab ->
-											NavigationBarItem(
-												icon = {
-												Icon(
-													if (currentRoute == tab.route) tab.iconSelected else tab.icon, tab.label
-												)
-											},
-												label = { Text(tab.label) },
-												selected = currentRoute == tab.route,
-												onClick = {
-													navController.navigate(tab.route) {
-														popUpTo(navController.graph.startDestinationId) {
-															saveState = true
-														}
-														launchSingleTop = true
-														restoreState = true
-													}
-												})
+						SharedTransitionLayout {
+							Scaffold(
+								modifier = Modifier.fillMaxSize(),
+								contentWindowInsets = WindowInsets(),
+								bottomBar = {
+									if (isLoggedIn) {
+										Column {
+											PlayerView(
+												state = playbackViewModel.playbackState,
+												onResumePlayback = { playbackViewModel.resumePlayback() },
+												onPausePlayback = { playbackViewModel.pausePlayback() },
+												onToggleExpanded = { isPlayerExpanded = !isPlayerExpanded },
+												onSkipTrack = { playbackViewModel.skipTrack() },
+												onPreviousTrack = { playbackViewModel.previousTrack() },
+												onSeek = { playbackViewModel.seekTo(it) },
+												isExpanded = isPlayerExpanded
+											)
+											NavigationBar {
+												tabs.forEach { tab ->
+													NavigationBarItem(
+														icon = {
+														Icon(
+															if (currentRoute == tab.route) tab.iconSelected else tab.icon,
+															tab.label
+														)
+													},
+														label = { Text(tab.label) },
+														selected = currentRoute == tab.route,
+														onClick = {
+															navController.navigate(tab.route) {
+																popUpTo(navController.graph.startDestinationId) {
+																	saveState = true
+																}
+																launchSingleTop = true
+																restoreState = true
+															}
+														})
+												}
+											}
 										}
 									}
-								}
-							}
-						}) { innerPadding ->
-							Box(modifier = Modifier.padding(innerPadding)) {
+								}) { innerPadding ->
 								NavHost(
 									navController = navController,
 									startDestination = if (isLoggedIn) View.Home.route else View.Welcome.route,
+									modifier = Modifier.padding(innerPadding),
 									enterTransition = {
 										fadeIn(tween(300)) + scaleIn(
 											initialScale = 0.92f, animationSpec = tween(300)
@@ -271,10 +271,16 @@ class MainActivity : ComponentActivity() {
 										LoginScreen(viewModel = authViewModel)
 									}
 									composable(View.Home.route) {
-										HomeScreen()
+										HomeScreen(
+											sharedTransitionScope = this@SharedTransitionLayout,
+											animatedVisibilityScope = this@composable
+										)
 									}
 									composable(View.Search.route) {
-										SearchScreen()
+										SearchScreen(
+											sharedTransitionScope = this@SharedTransitionLayout,
+											animatedVisibilityScope = this@composable
+										)
 									}
 									composable(View.Library.route) {
 										val libraryViewModel: LibraryViewModel = viewModel()
@@ -283,7 +289,8 @@ class MainActivity : ComponentActivity() {
 										}
 										LibraryScreen(
 											viewModel = libraryViewModel,
-											onSetTopBar = { content -> topBarContents[View.Library.route] = content },
+											sharedTransitionScope = this@SharedTransitionLayout,
+											animatedVisibilityScope = this@composable,
 											onNavigateToPlaylist = { uri ->
 												navController.navigate(View.Playlist.createRoute(uri))
 											})
@@ -300,8 +307,9 @@ class MainActivity : ComponentActivity() {
 										PlaylistScreen(
 											uri = uri,
 											viewModel = playlistViewModel,
-											onBack = { navController.popBackStack() },
-											onSetTopBar = { content -> topBarContents[View.Playlist.route] = content })
+											sharedTransitionScope = this@SharedTransitionLayout,
+											animatedVisibilityScope = this@composable,
+											onBack = { navController.popBackStack() })
 									}
 								}
 							}

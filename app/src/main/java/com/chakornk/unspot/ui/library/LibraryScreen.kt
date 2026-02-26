@@ -1,5 +1,8 @@
 package com.chakornk.unspot.ui.library
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -20,11 +23,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,41 +53,47 @@ import com.composables.icons.materialsymbols.outlined.Close
 import com.composables.icons.materialsymbols.outlined.Search
 import com.composables.icons.materialsymbols.outlinedfilled.Volume_up
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun LibraryScreen(
 	viewModel: LibraryViewModel,
-	onSetTopBar: (@Composable () -> Unit) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	onNavigateToPlaylist: (String) -> Unit
 ) {
 	val items = viewModel.filteredItems
 	var isSearchActive by remember { mutableStateOf(false) }
 
-	LaunchedEffect(isSearchActive, viewModel.searchQuery) {
-		onSetTopBar {
-			LibraryTopBar(
-				searchQuery = viewModel.searchQuery,
-				onSearchQueryChange = { viewModel.searchQuery = it },
-				isSearchActive = isSearchActive,
-				onSearchToggle = {
-					isSearchActive = !isSearchActive
-					if (!isSearchActive) viewModel.searchQuery = ""
-				})
-		}
-	}
-
-	DisposableEffect(Unit) {
-		onDispose {
-			onSetTopBar {}
-		}
-	}
-
-	LazyColumn(modifier = Modifier.fillMaxSize()) {
-		items(items, key = { it.uri }) { item ->
-			LibraryItemRow(item, onClick = {
-				if (item.type == "playlist") {
-					onNavigateToPlaylist(item.uri)
+	sharedTransitionScope.apply {
+		Scaffold(
+			topBar = {
+				LibraryTopBar(
+					searchQuery = viewModel.searchQuery,
+					onSearchQueryChange = { viewModel.searchQuery = it },
+					isSearchActive = isSearchActive,
+					onSearchToggle = {
+						isSearchActive = !isSearchActive
+						if (!isSearchActive) viewModel.searchQuery = ""
+					},
+					modifier = Modifier.sharedBounds(
+						rememberSharedContentState(key = "top-bar"),
+						animatedVisibilityScope = animatedVisibilityScope
+					)
+				)
+			}) { padding ->
+			LazyColumn(
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(padding)
+			) {
+				items(items, key = { it.uri }) { item ->
+					LibraryItemRow(item, onClick = {
+						if (item.type == "playlist") {
+							onNavigateToPlaylist(item.uri)
+						}
+					})
 				}
-			})
+			}
 		}
 	}
 }
@@ -95,12 +104,13 @@ fun LibraryTopBar(
 	searchQuery: String,
 	onSearchQueryChange: (String) -> Unit,
 	isSearchActive: Boolean,
-	onSearchToggle: () -> Unit
+	onSearchToggle: () -> Unit,
+	modifier: Modifier = Modifier
 ) {
 	val focusRequester = remember { FocusRequester() }
 	val focusManager = LocalFocusManager.current
 
-	TopAppBar(title = {
+	TopAppBar(modifier = modifier, title = {
 		if (isSearchActive) {
 			BasicTextField(
 				value = searchQuery,
@@ -201,14 +211,7 @@ fun LibraryItemRow(item: LibraryItem, onClick: () -> Unit) {
 @ThemePreview
 @Composable
 fun LibraryScreenPreview() {
-	PreviewScreen(
-		topBar = {
-			LibraryTopBar(
-				searchQuery = "",
-				onSearchQueryChange = {},
-				isSearchActive = true,
-				onSearchToggle = {})
-		}) {
+	PreviewScreen {
 		// Mock data for preview
 		val mockItems = listOf(
 			LibraryItem(
