@@ -76,7 +76,6 @@ import com.composables.icons.materialsymbols.outlinedfilled.Play_arrow
 import com.composables.icons.materialsymbols.outlinedfilled.Play_circle
 import com.composables.icons.materialsymbols.outlinedfilled.Skip_next
 import com.composables.icons.materialsymbols.outlinedfilled.Skip_previous
-import org.mozilla.gecko.GeckoThread.onPause
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -404,7 +403,7 @@ private fun NowPlayingBar(
 		modifier = Modifier
 			.fillMaxWidth()
 			.height(80.dp)
-			.padding(8.dp)
+			.padding(8.dp, 0.dp, 8.dp, 8.dp)
 			.clip(RoundedCornerShape(8.dp))
 			.swipeToSkip(
 				onSkip = onSkipTrack, onPrevious = onPreviousTrack

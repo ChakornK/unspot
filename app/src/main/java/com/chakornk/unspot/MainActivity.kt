@@ -19,7 +19,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -35,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -182,14 +187,16 @@ class MainActivity : ComponentActivity() {
 					}
 
 					if (isCheckingAuth) {
-						Scaffold { innerPadding ->
+						Scaffold(
+							contentWindowInsets = WindowInsets(0, 0, 0, 0)
+						) { innerPadding ->
 							Box(modifier = Modifier.padding(innerPadding)) { LoadingScreen() }
 						}
 					} else {
 						SharedTransitionLayout {
 							Scaffold(
 								modifier = Modifier.fillMaxSize(),
-								contentWindowInsets = WindowInsets(),
+								contentWindowInsets = WindowInsets(0, 0, 0, 0),
 								bottomBar = {
 									if (isLoggedIn) {
 										Column {
@@ -228,10 +235,17 @@ class MainActivity : ComponentActivity() {
 										}
 									}
 								}) { innerPadding ->
+								val layoutDirection = LocalLayoutDirection.current
 								NavHost(
 									navController = navController,
 									startDestination = if (isLoggedIn) View.Home.route else View.Welcome.route,
-									modifier = Modifier.padding(innerPadding),
+									modifier = Modifier.padding(
+										start = innerPadding.calculateStartPadding(layoutDirection),
+										end = innerPadding.calculateEndPadding(layoutDirection),
+										top = innerPadding.calculateTopPadding(),
+										bottom = innerPadding.calculateBottomPadding() - WindowInsets.navigationBars.asPaddingValues()
+											.calculateBottomPadding()
+									),
 									enterTransition = {
 										fadeIn(tween(300)) + scaleIn(
 											initialScale = 0.92f, animationSpec = tween(300)
