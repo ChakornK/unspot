@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -141,6 +142,10 @@ fun SpotifyWebView(
 class MainActivity : ComponentActivity() {
 	@OptIn(ExperimentalSharedTransitionApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
+		enableEdgeToEdge()
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+			window.isNavigationBarContrastEnforced = false
+		}
 		super.onCreate(savedInstanceState)
 
 		val app = application as UnspotApplication
