@@ -160,7 +160,7 @@ const handlers = {
   },
 
   getLibraryData: async () => {
-    const [{ items }, { context }] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
+    const [{ items }, currentState] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
     if (items === null) return null;
     const getSubtitle = (item) => {
       switch (item.type) {
@@ -181,7 +181,7 @@ const handlers = {
         cover: item.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
         title: item.name,
         subtitle: getSubtitle(item),
-        isActive: item.uri === (context?.uri ?? ""),
+        isActive: item.uri === (currentState?.context?.uri ?? ""),
       })),
     };
   },
