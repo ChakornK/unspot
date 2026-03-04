@@ -11,7 +11,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,11 +19,9 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -140,7 +137,6 @@ fun SpotifyWebView(
 }
 
 class MainActivity : ComponentActivity() {
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		enableEdgeToEdge()
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -248,8 +244,7 @@ class MainActivity : ComponentActivity() {
 										start = innerPadding.calculateStartPadding(layoutDirection),
 										end = innerPadding.calculateEndPadding(layoutDirection),
 										top = innerPadding.calculateTopPadding(),
-										bottom = innerPadding.calculateBottomPadding() - WindowInsets.navigationBars.asPaddingValues()
-											.calculateBottomPadding()
+										bottom = innerPadding.calculateBottomPadding()
 									),
 									enterTransition = {
 										fadeIn(tween(300)) + scaleIn(
@@ -287,7 +282,11 @@ class MainActivity : ComponentActivity() {
 										WelcomeScreen(viewModel = welcomeViewModel)
 									}
 									composable(View.Login.route) {
-										LoginScreen(viewModel = authViewModel)
+										LoginScreen(
+											viewModel = authViewModel,
+											sharedTransitionScope = this@SharedTransitionLayout,
+											animatedVisibilityScope = this@composable
+										)
 									}
 									composable(View.Home.route) {
 										HomeScreen(
