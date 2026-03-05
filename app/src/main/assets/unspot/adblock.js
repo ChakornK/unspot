@@ -12,7 +12,10 @@ document.createElement = (() => {
             this.currentTime = this.duration;
             this.dispatchEvent(new Event("timeupdate"));
             const inter = setInterval(() => {
-              if (this.src !== oldSrc) return clearInterval(inter);
+              if (this.src !== oldSrc) {
+                this.currentTime = 0;
+                return clearInterval(inter);
+              }
               this.currentTime = this.duration;
               this.dispatchEvent(new Event("ended"));
             }, 100);
