@@ -1,5 +1,5 @@
 [versions]
-agp = "9.0.1"
+agp = "9.1.0"
 coilCompose = "2.7.0"
 geckoview = "147.0.20260203002554"
 iconsMaterialSymbolsOutlinedCmp = "2.2.1"
