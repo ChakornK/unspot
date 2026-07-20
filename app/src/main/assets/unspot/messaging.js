@@ -1,12 +1,12 @@
 let Platform;
 (() => {
-  window.webpackChunkclient_web = window.webpackChunkclient_web || [];
+  window.rspackChunkclient_web = window.rspackChunkclient_web || [];
 
   const definePlatform = () => {
     Object.defineProperty(window, "Platform", { value: Object.getOwnPropertyNames(Platform).reduce((p, c) => ({ ...p, [c]: Platform[c] }), {}) });
   };
 
-  window.webpackChunkclient_web.push([
+  window.rspackChunkclient_web.push([
     ["__platform_hook__"],
     {},
     function installHook(require) {
