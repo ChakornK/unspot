@@ -262,10 +262,10 @@ const postLibraryUpdate = async () => {
 })();
 
 (async () => {
-  while (!Platform?.PlayerSDK?.harmony?._listeners?.player_initialization_done) {
+  while (!Platform?.PlayerSDK?.harmony?._listeners?.seek_panels_loaded) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  Platform.PlayerSDK.harmony._listeners.player_initialization_done.push({
+  Platform.PlayerSDK.harmony._listeners.seek_panels_loaded.push({
     listener: async () => {
       const state = await handlers.getPlaybackState();
       if (!state) return;
