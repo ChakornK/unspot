@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Build
 import android.util.Log
 import com.chakornk.unspot.gecko.WebExtensionManager
+import com.chakornk.unspot.ui.auth.AuthStorage
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -32,6 +33,8 @@ class UnspotApplication : Application() {
 		if (!isMainProcess()) {
 			return
 		}
+
+		AuthStorage.init(this)
 
 		val runtimeSettings = GeckoRuntimeSettings.Builder().remoteDebuggingEnabled(true)
 			.arguments(arrayOf("--start-debugger-server", "9222")).build()

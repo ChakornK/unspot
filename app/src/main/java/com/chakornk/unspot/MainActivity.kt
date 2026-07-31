@@ -109,6 +109,18 @@ class MainActivity : ComponentActivity() {
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)
 
+			LaunchedEffect(authViewModel.isLoggedIn) {
+				val currentRoute = navController.currentBackStackEntry?.destination?.route
+				if (currentRoute != null) {
+					val targetRoute = if (authViewModel.isLoggedIn) View.Home.route else View.Welcome.route
+					if (currentRoute != targetRoute) {
+						navController.navigate(targetRoute) {
+							popUpTo(navController.graph.id) { inclusive = true }
+						}
+					}
+				}
+			}
+
 			val navBackStackEntry by navController.currentBackStackEntryAsState()
 			val currentRoute = navBackStackEntry?.destination?.route
 

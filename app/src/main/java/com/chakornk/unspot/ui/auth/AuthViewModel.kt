@@ -9,10 +9,10 @@ import com.chakornk.unspot.ui.base.BaseGeckoViewModel
 import org.json.JSONObject
 
 class AuthViewModel(private val model: AuthModel = AuthModel()) : BaseGeckoViewModel() {
-	var isLoggedIn by mutableStateOf(false)
+	var isLoggedIn by mutableStateOf(AuthStorage.isLoggedIn)
 		private set
 
-	var isCheckingAuth by mutableStateOf(true)
+	var isCheckingAuth by mutableStateOf(false)
 		private set
 
 	override fun onManagerAttached(manager: WebExtensionManager) {
@@ -26,18 +26,19 @@ class AuthViewModel(private val model: AuthModel = AuthModel()) : BaseGeckoViewM
 	override fun handleMessage(message: WebExtensionMessage) {
 		when (message.type) {
 			"getIsSignedInResponse" -> {
-				isLoggedIn = (message.rawMessage as? JSONObject)?.optBoolean("data") ?: false
-				isCheckingAuth = false
-
-				if (!isLoggedIn) {
-					sendMessage(model.goToLoginMessage)
+				val newStatus = (message.rawMessage as? JSONObject)?.optBoolean("data") ?: false
+				if (newStatus != isLoggedIn) {
+					isLoggedIn = newStatus
+					if (!newStatus) {
+						sendMessage(model.goToLoginMessage)
+					}
 				}
+				AuthStorage.isLoggedIn = newStatus
 			}
 		}
 	}
 
 	fun checkAuthStatus() {
-		isCheckingAuth = true
 		sendMessage(model.getIsSignedInMessage)
 	}
 
