@@ -6,4 +6,18 @@
   var rid = 1;
   window.requestAnimationFrame = function () { return rid++; };
   window.cancelAnimationFrame = function () {};
+
+  var iid = 1;
+  window.setInterval = function () { return iid++; };
+  window.clearInterval = function () {};
+
+  window.IntersectionObserver = function () {
+    return { observe: function () {}, unobserve: function () {}, disconnect: function () {}, takeRecords: function () { return []; }, root: null, rootMargin: "", thresholds: [] };
+  };
+
+  window.ResizeObserver = function () {
+    return { observe: function () {}, unobserve: function () {}, disconnect: function () {} };
+  };
+
+  HTMLCanvasElement.prototype.getContext = function () { return null; };
 })();
