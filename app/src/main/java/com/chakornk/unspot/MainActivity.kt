@@ -81,10 +81,12 @@ import org.mozilla.geckoview.WebExtension
 fun SpotifyWebView(
 	runtime: GeckoRuntime, authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager
 ) {
+	val geckoVersion = org.mozilla.geckoview.BuildConfig.MOZILLA_VERSION.split(".")[0]
+
 	val sessionSettings = GeckoSessionSettings.Builder().usePrivateMode(false)
 		.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 		.userAgentMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
-		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0")
+		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:$geckoVersion.0) Gecko/20100101 Firefox/$geckoVersion.0")
 		.useTrackingProtection(false).suspendMediaWhenInactive(false).build()
 
 	val session = remember { GeckoSession(sessionSettings) }
