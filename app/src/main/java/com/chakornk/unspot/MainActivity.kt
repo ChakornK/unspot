@@ -109,10 +109,6 @@ class MainActivity : ComponentActivity() {
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)
 
-			LaunchedEffect(authViewModel) {
-				app.onPageStopped = { authViewModel.checkAuthStatus() }
-			}
-
 			val navBackStackEntry by navController.currentBackStackEntryAsState()
 			val currentRoute = navBackStackEntry?.destination?.route
 

@@ -26,13 +26,6 @@ class UnspotApplication : Application() {
 	val geckoSession: GeckoSession
 		get() = _geckoSession ?: throw IllegalStateException("GeckoSession not initialized")
 
-	private var lastPageStopSuccess: Boolean? = null
-	var onPageStopped: ((Boolean) -> Unit)? = null
-		set(value) {
-			field = value
-			lastPageStopSuccess?.let { success -> value?.invoke(success) }
-		}
-
 	override fun onCreate() {
 		super.onCreate()
 
@@ -66,13 +59,6 @@ class UnspotApplication : Application() {
 				return if (perm.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS || perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE) {
 					GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW)
 				} else null
-			}
-		}
-
-		session.progressDelegate = object : GeckoSession.ProgressDelegate {
-			override fun onPageStop(session: GeckoSession, success: Boolean) {
-				lastPageStopSuccess = success
-				onPageStopped?.invoke(success)
 			}
 		}
 

@@ -16,7 +16,11 @@ class AuthViewModel(private val model: AuthModel = AuthModel()) : BaseGeckoViewM
 		private set
 
 	override fun onManagerAttached(manager: WebExtensionManager) {
-		checkAuthStatus()
+		if (manager.isConnected()) {
+			checkAuthStatus()
+		} else {
+			manager.onPortConnected = { checkAuthStatus() }
+		}
 	}
 
 	override fun handleMessage(message: WebExtensionMessage) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 class WebExtensionManager {
     private var port: WebExtension.Port? = null
+    var onPortConnected: (() -> Unit)? = null
     
     private val _messages = MutableSharedFlow<WebExtensionMessage>(extraBufferCapacity = 64)
     val messages = _messages.asSharedFlow()
@@ -25,6 +26,7 @@ class WebExtensionManager {
             Log.d("WebExtensionManager", "Connected to WebExtension port")
             this@WebExtensionManager.port = port
             port.setDelegate(portDelegate)
+            onPortConnected?.invoke()
         }
     }
 
