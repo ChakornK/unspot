@@ -32,5 +32,8 @@
       "world": "MAIN"
     }
   ],
-  "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons"]
+  "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons", "webRequest", "webRequestBlocking"],
+  "background": {
+    "scripts": ["background.js"]
+  }
 }

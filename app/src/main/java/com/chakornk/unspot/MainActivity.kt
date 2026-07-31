@@ -91,10 +91,6 @@ fun SpotifyWebView(
 
 	val session = remember { GeckoSession(sessionSettings) }
 
-	// fix service worker glitch
-	runtime.storageController.clearData(
-		StorageController.ClearFlags.DOM_STORAGES
-	)
 	runtime.webExtensionController.ensureBuiltIn(
 		"resource://android/assets/unspot/", "@unspot"
 	).accept({ extension: WebExtension? ->
