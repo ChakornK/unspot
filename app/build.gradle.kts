@@ -6,6 +6,8 @@ plugins {
 android {
 	namespace = "com.chakornk.unspot"
 	compileSdk = 37
+	compileSdkMinor = 1
+	buildToolsVersion = "37.0.0"
 
 	defaultConfig {
 		applicationId = "com.chakornk.unspot"
