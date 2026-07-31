@@ -20,12 +20,14 @@ class UnspotApplication : Application() {
 
 	val webExtensionManager = WebExtensionManager()
 
-	// ponytail: GeckoSession owned by Application so it outlives the Activity.
-	// The foreground MediaPlaybackService keeps the process alive while playing,
-	// so the session (and Spotify audio) survives the Activity being killed in the background.
-	private var _geckoSession: GeckoSession? = null
-	val geckoSession: GeckoSession
-		get() = _geckoSession ?: throw IllegalStateException("GeckoSession not initialized")
+// ponytail: GeckoSession owned by Application so it outlives the Activity.
+// The foreground MediaPlaybackService keeps the process alive while playing,
+// so the session (and Spotify audio) survives the Activity being killed in the background.
+private var _geckoSession: GeckoSession? = null
+val geckoSession: GeckoSession
+	get() = _geckoSession ?: throw IllegalStateException("GeckoSession not initialized")
+
+var onLocationChanged: ((String) -> Unit)? = null
 
 	override fun onCreate() {
 		super.onCreate()
@@ -62,6 +64,12 @@ class UnspotApplication : Application() {
 				return if (perm.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS || perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE) {
 					GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW)
 				} else null
+			}
+		}
+
+		session.progressDelegate = object : GeckoSession.ProgressDelegate {
+			override fun onPageStart(session: GeckoSession, url: String) {
+				onLocationChanged?.invoke(url)
 			}
 		}
 

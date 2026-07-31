@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 
 class WelcomeViewModel(private val model: WelcomeModel = WelcomeModel()) : ViewModel() {
 	sealed class WelcomeEvent {
-		data class NavigateToLogin(val route: String) : WelcomeEvent()
+		data object EnterLoginMode : WelcomeEvent()
 		data class OpenSignUp(val url: String) : WelcomeEvent()
 	}
 
@@ -17,7 +17,7 @@ class WelcomeViewModel(private val model: WelcomeModel = WelcomeModel()) : ViewM
 
 	fun onSignInClick() {
 		viewModelScope.launch {
-			_events.emit(WelcomeEvent.NavigateToLogin(model.getLoginRoute()))
+			_events.emit(WelcomeEvent.EnterLoginMode)
 		}
 	}
 

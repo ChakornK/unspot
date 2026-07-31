@@ -53,7 +53,6 @@ import androidx.navigation.navArgument
 import com.chakornk.unspot.gecko.WebExtensionManager
 import com.chakornk.unspot.playback.MediaPlaybackService
 import com.chakornk.unspot.ui.auth.AuthViewModel
-import com.chakornk.unspot.ui.auth.LoginScreen
 import com.chakornk.unspot.ui.components.LoadingScreen
 import com.chakornk.unspot.ui.home.HomeScreen
 import com.chakornk.unspot.ui.library.LibraryScreen
@@ -100,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
 		requestNotificationPermission()
 
-		setContent {
+setContent {
 			val navController = rememberNavController()
 			val authViewModel: AuthViewModel = viewModel()
 			val welcomeViewModel: WelcomeViewModel = viewModel()
@@ -108,6 +107,19 @@ class MainActivity : ComponentActivity() {
 
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)
+
+			var isLoginMode by remember { mutableStateOf(false) }
+
+			LaunchedEffect(Unit) {
+				app.onLocationChanged = { url ->
+					if (isLoginMode && url.startsWith("https://open.spotify.com/") && !url.contains("/login")) {
+						if (!authViewModel.isLoggedIn) {
+							authViewModel.updateLoggedIn(true)
+						}
+						isLoginMode = false
+					}
+				}
+			}
 
 			LaunchedEffect(authViewModel.isLoggedIn) {
 				val currentRoute = navController.currentBackStackEntry?.destination?.route
@@ -137,7 +149,7 @@ class MainActivity : ComponentActivity() {
 
 			UnspotTheme {
 				Box(modifier = Modifier.fillMaxSize()) {
-					Box(modifier = Modifier.alpha(0f)) {
+					Box(modifier = Modifier.alpha(if (isLoginMode) 1f else 0f)) {
 						SpotifyWebView(app.geckoSession)
 					}
 
@@ -174,17 +186,17 @@ class MainActivity : ComponentActivity() {
 															tab.label
 														)
 													},
-														label = { Text(tab.label) },
-														selected = currentRoute == tab.route,
-														onClick = {
-															navController.navigate(tab.route) {
-																popUpTo(navController.graph.startDestinationId) {
-																	saveState = true
-																}
-																launchSingleTop = true
-																restoreState = true
+													label = { Text(tab.label) },
+													selected = currentRoute == tab.route,
+													onClick = {
+														navController.navigate(tab.route) {
+															popUpTo(navController.graph.startDestinationId) {
+																saveState = true
 															}
-														})
+															launchSingleTop = true
+															restoreState = true
+														}
+													})
 												}
 											}
 										}
@@ -220,8 +232,8 @@ class MainActivity : ComponentActivity() {
 										LaunchedEffect(Unit) {
 											welcomeViewModel.events.collect { event ->
 												when (event) {
-													is WelcomeViewModel.WelcomeEvent.NavigateToLogin -> {
-														navController.navigate(event.route)
+													is WelcomeViewModel.WelcomeEvent.EnterLoginMode -> {
+														isLoginMode = true
 													}
 
 													is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
@@ -234,13 +246,6 @@ class MainActivity : ComponentActivity() {
 											}
 										}
 										WelcomeScreen(viewModel = welcomeViewModel)
-									}
-									composable(View.Login.route) {
-										LoginScreen(
-											viewModel = authViewModel,
-											sharedTransitionScope = this@SharedTransitionLayout,
-											animatedVisibilityScope = this@composable
-										)
 									}
 									composable(View.Home.route) {
 										HomeScreen(
