@@ -74,3 +74,34 @@ browser.webRequest.onBeforeRequest.addListener(
   { urls: patterns },
   ["blocking"],
 );
+
+var cachePatterns = [
+  "*://*.spotify.com/*",
+  "*://*.scdn.co/*",
+  "*://*.spotifycdn.com/*",
+];
+
+browser.webRequest.onHeadersReceived.addListener(
+  function (details) {
+    var url = details.url;
+    var isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
+      /\.scdn\.co$/.test((url.split("/")[2] || "").split(":")[0]) ||
+      /\.spotifycdn\.com$/.test((url.split("/")[2] || "").split(":")[0]);
+    if (!isStatic) return;
+    var headers = details.responseHeaders || [];
+    var found = false;
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i].name.toLowerCase() === "cache-control") {
+        headers[i].value = "public, max-age=31536000, immutable";
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      headers.push({ name: "Cache-Control", value: "public, max-age=31536000, immutable" });
+    }
+    return { responseHeaders: headers };
+  },
+  { urls: cachePatterns },
+  ["blocking", "responseHeaders"],
+);
