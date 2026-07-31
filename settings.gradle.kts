@@ -17,9 +17,16 @@ plugins {
 dependencyResolutionManagement {
 	repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 	repositories {
+		exclusiveContent {
+			forRepository {
+				maven { url = uri("https://maven.mozilla.org/maven2/") }
+			}
+			filter {
+				includeGroup("org.mozilla.geckoview")
+			}
+		}
 		google()
 		mavenCentral()
-		maven { url = uri("https://maven.mozilla.org/maven2/") }
 	}
 }
 
