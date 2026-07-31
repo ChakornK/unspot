@@ -69,69 +69,14 @@ import com.chakornk.unspot.ui.theme.UnspotTheme
 import com.chakornk.unspot.ui.welcome.WelcomeScreen
 import com.chakornk.unspot.ui.welcome.WelcomeViewModel
 import com.google.common.util.concurrent.MoreExecutors
-import org.mozilla.geckoview.GeckoResult
-import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
-import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
-import org.mozilla.geckoview.StorageController
-import org.mozilla.geckoview.WebExtension
 
 @Composable
-fun SpotifyWebView(
-	runtime: GeckoRuntime, authViewModel: AuthViewModel, webExtensionManager: WebExtensionManager
-) {
-	val geckoVersion = org.mozilla.geckoview.BuildConfig.MOZILLA_VERSION.split(".")[0]
-
-	val sessionSettings = GeckoSessionSettings.Builder().usePrivateMode(false)
-		.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
-		.userAgentMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
-		.userAgentOverride("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:$geckoVersion.0) Gecko/20100101 Firefox/$geckoVersion.0")
-		.useTrackingProtection(false).suspendMediaWhenInactive(false).build()
-
-	val session = remember { GeckoSession(sessionSettings) }
-
-	runtime.webExtensionController.ensureBuiltIn(
-		"resource://android/assets/unspot/", "@unspot"
-	).accept({ extension: WebExtension? ->
-		Log.i(
-			"MessageDelegate", "Extension installed: $extension"
-		)
-		extension?.let {
-			session.webExtensionController.setMessageDelegate(
-				it, webExtensionManager.messageDelegate, "browser"
-			)
-		}
-	}, { e: Throwable? ->
-		Log.e(
-			"MessageDelegate", "Error registering WebExtension", e
-		)
-	})
-
+fun SpotifyWebView(session: GeckoSession) {
 	AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
-		GeckoView(ctx).apply {
-			session.open(runtime)
-			this.setSession(session)
-
-			session.permissionDelegate = object : GeckoSession.PermissionDelegate {
-				override fun onContentPermissionRequest(
-					session: GeckoSession, perm: GeckoSession.PermissionDelegate.ContentPermission
-				): GeckoResult<Int>? {
-					return if (perm.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS || perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE) {
-						GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW)
-					} else null
-				}
-			}
-
-			session.progressDelegate = object : GeckoSession.ProgressDelegate {
-				override fun onPageStop(session: GeckoSession, success: Boolean) {
-					authViewModel.checkAuthStatus()
-				}
-			}
-
-			session.loadUri("https://open.spotify.com")
-		}
-	}, update = { /* session management if needed */ })
+		GeckoView(ctx).apply { setSession(session) }
+	})
 }
 
 class MainActivity : ComponentActivity() {
@@ -143,7 +88,6 @@ class MainActivity : ComponentActivity() {
 		super.onCreate(savedInstanceState)
 
 		val app = application as UnspotApplication
-		val geckoRuntime = app.geckoRuntime
 		val webExtensionManager = app.webExtensionManager
 
 		val sessionToken = SessionToken(this, ComponentName(this, MediaPlaybackService::class.java))
@@ -165,6 +109,10 @@ class MainActivity : ComponentActivity() {
 			authViewModel.attachManager(webExtensionManager)
 			playbackViewModel.attachManager(webExtensionManager)
 
+			LaunchedEffect(authViewModel) {
+				app.onPageStopped = { authViewModel.checkAuthStatus() }
+			}
+
 			val navBackStackEntry by navController.currentBackStackEntryAsState()
 			val currentRoute = navBackStackEntry?.destination?.route
 
@@ -182,7 +130,7 @@ class MainActivity : ComponentActivity() {
 			UnspotTheme {
 				Box(modifier = Modifier.fillMaxSize()) {
 					Box(modifier = Modifier.alpha(0f)) {
-						SpotifyWebView(geckoRuntime, authViewModel, webExtensionManager)
+						SpotifyWebView(app.geckoSession)
 					}
 
 					if (isCheckingAuth) {
