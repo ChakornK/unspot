@@ -290,6 +290,20 @@ const postLibraryUpdate = async () => {
     },
     options: {},
   });
+
+  const noop = function () {};
+  window.MessageChannel = function () {
+    this.port1 = this.port2 = {
+      onmessage: null,
+      onmessageerror: null,
+      postMessage: noop,
+      close: noop,
+      start: noop,
+      addEventListener: noop,
+      removeEventListener: noop,
+      dispatchEvent: function () { return true; },
+    };
+  };
 })();
 
 (async () => {

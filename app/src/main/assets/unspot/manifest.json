@@ -15,6 +15,12 @@
     },
     {
       "matches": ["*://*.spotify.com/*"],
+      "js": ["renderblock.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.spotify.com/*"],
       "js": ["messaging.js"],
       "run_at": "document_start",
       "world": "MAIN"
