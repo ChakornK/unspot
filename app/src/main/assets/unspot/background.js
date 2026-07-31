@@ -52,12 +52,12 @@ browser.webRequest.onBeforeRequest.addListener(
   function (details) {
     var url = details.url;
     var host = (url.split("/")[2] || "").split(":")[0];
-    if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(url)) {
-      console.log("REQ BLOCK font", host, url.substring(0, 120));
+    if (details.type === "image") {
+      console.log("REQ BLOCK image", host, url.substring(0, 120));
       return { cancel: true };
     }
-    if (/\.(png|jpe?g|gif|webp|svg|ico)(\?|$)/i.test(url) && (/\.scdn\.co$/.test(host) || /\.spotifycdn\.com$/.test(host))) {
-      console.log("REQ BLOCK cdn-image", host, url.substring(0, 120));
+    if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(url)) {
+      console.log("REQ BLOCK font", host, url.substring(0, 120));
       return { cancel: true };
     }
     if (isSpotify.test(host)) {
