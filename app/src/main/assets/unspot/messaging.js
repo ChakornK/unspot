@@ -273,7 +273,7 @@ const postLibraryUpdate = async () => {
     },
     options: {},
   });
-  Platform.PlayerSDK.harmony._listeners.state_changed.push({
+  Platform.PlayerSDK.harmony._controller._listeners.state_changed.push({
     listener: async () => {
       const state = await handlers.getPlaybackState();
       if (!state) return;
@@ -282,7 +282,7 @@ const postLibraryUpdate = async () => {
     },
     options: {},
   });
-  Platform.PlayerSDK.harmony._listeners.progress.push({
+  Platform.PlayerSDK.harmony._controller._listeners.progress.push({
     listener: async () => {
       const progress = await handlers.getPlaybackProgress();
       if (!progress) return;
