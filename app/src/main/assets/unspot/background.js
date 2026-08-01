@@ -21,13 +21,11 @@ var spotifyTelemetry = [
   "adlab.spotify.com",
 ];
 
-var isSpotify = /(^|\.)spotify\.(com|net)$/;
+var isSpotify = /(^|\.)spotify\.com$/;
 
 var patterns = [
   "*://*.spotify.com/*",
-  "*://*.spotify.net/*",
   "*://*.scdn.co/*",
-  "*://*.spotifycdn.com/*",
   "*://*.doubleclick.net/*",
   "*://*.googlesyndication.com/*",
   "*://*.googleadservices.com/*",
