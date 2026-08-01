@@ -33,6 +33,30 @@
     }
   ],
   "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons", "webRequest", "webRequestBlocking"],
+  "host_permissions": [
+    "*://*.spotify.com/*",
+    "*://*.spotify.net/*",
+    "*://*.scdn.co/*",
+    "*://*.spotifycdn.com/*",
+    "*://*.doubleclick.net/*",
+    "*://*.googlesyndication.com/*",
+    "*://*.googleadservices.com/*",
+    "*://*.googletagservices.com/*",
+    "*://*.google-analytics.com/*",
+    "*://*.moatads.com/*",
+    "*://*.pubmatic.com/*",
+    "*://*.adnxs.com/*",
+    "*://*.scorecardresearch.com/*",
+    "*://*.comscore.com/*",
+    "*://*.mixpanel.com/*",
+    "*://*.intercom.io/*",
+    "*://*.adjust.com/*",
+    "*://*.crashlytics.com/*",
+    "*://*.sentry.io/*",
+    "*://*.litix.io/*",
+    "*://*.flurry.com/*",
+    "*://*.adsafeprotected.com/*"
+  ],
   "background": {
     "scripts": ["background.js"]
   }

@@ -35,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
@@ -149,17 +148,17 @@ setContent {
 
 			UnspotTheme {
 				Box(modifier = Modifier.fillMaxSize()) {
-					Box(modifier = Modifier.alpha(if (isLoginMode) 1f else 0f)) {
+					if (isLoginMode) {
 						SpotifyWebView(app.geckoSession)
 					}
 
-					if (isCheckingAuth) {
+					if (!isLoginMode && isCheckingAuth) {
 						Scaffold(
 							contentWindowInsets = WindowInsets(0, 0, 0, 0)
 						) { innerPadding ->
 							Box(modifier = Modifier.padding(innerPadding)) { LoadingScreen() }
 						}
-					} else {
+					} else if (!isLoginMode) {
 						SharedTransitionLayout {
 							Scaffold(
 								modifier = Modifier.fillMaxSize(),
@@ -232,9 +231,10 @@ setContent {
 										LaunchedEffect(Unit) {
 											welcomeViewModel.events.collect { event ->
 												when (event) {
-													is WelcomeViewModel.WelcomeEvent.EnterLoginMode -> {
-														isLoginMode = true
-													}
+											is WelcomeViewModel.WelcomeEvent.EnterLoginMode -> {
+													isLoginMode = true
+													app.geckoSession.loadUri("https://accounts.spotify.com/login")
+												}
 
 													is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
 														val intent = Intent(
