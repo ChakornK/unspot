@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
 		requestNotificationPermission()
 
-setContent {
+		setContent {
 			val navController = rememberNavController()
 			val authViewModel: AuthViewModel = viewModel()
 			val welcomeViewModel: WelcomeViewModel = viewModel()
@@ -190,17 +190,17 @@ setContent {
 															tab.label
 														)
 													},
-													label = { Text(tab.label) },
-													selected = currentRoute == tab.route,
-													onClick = {
-														navController.navigate(tab.route) {
-															popUpTo(navController.graph.startDestinationId) {
-																saveState = true
+														label = { Text(tab.label) },
+														selected = currentRoute == tab.route,
+														onClick = {
+															navController.navigate(tab.route) {
+																popUpTo(navController.graph.startDestinationId) {
+																	saveState = true
+																}
+																launchSingleTop = true
+																restoreState = true
 															}
-															launchSingleTop = true
-															restoreState = true
-														}
-													})
+														})
 												}
 											}
 										}
@@ -236,10 +236,10 @@ setContent {
 										LaunchedEffect(Unit) {
 											welcomeViewModel.events.collect { event ->
 												when (event) {
-											is WelcomeViewModel.WelcomeEvent.EnterLoginMode -> {
-													isLoginMode = true
-													app.geckoSession.loadUri("https://accounts.spotify.com/login")
-												}
+													is WelcomeViewModel.WelcomeEvent.EnterLoginMode -> {
+														isLoginMode = true
+														app.geckoSession.loadUri("https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F&allow_password=1")
+													}
 
 													is WelcomeViewModel.WelcomeEvent.OpenSignUp -> {
 														val intent = Intent(

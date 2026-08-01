@@ -27,13 +27,6 @@ class AuthViewModel(private val model: AuthModel = AuthModel()) : BaseGeckoViewM
 		when (message.type) {
 			"getIsSignedInResponse" -> {
 				val newStatus = (message.rawMessage as? JSONObject)?.optBoolean("data") ?: false
-				val wasLoggedIn = isLoggedIn
-				if (newStatus != wasLoggedIn) {
-					isLoggedIn = newStatus
-					if (wasLoggedIn && !newStatus) {
-						sendMessage(model.goToLoginMessage)
-					}
-				}
 				AuthStorage.isLoggedIn = newStatus
 			}
 		}
@@ -56,9 +49,6 @@ class AuthViewModel(private val model: AuthModel = AuthModel()) : BaseGeckoViewM
 		if (loggedIn != isLoggedIn) {
 			isLoggedIn = loggedIn
 			AuthStorage.isLoggedIn = loggedIn
-			if (!loggedIn) {
-				sendMessage(model.goToLoginMessage)
-			}
 		}
 	}
 }

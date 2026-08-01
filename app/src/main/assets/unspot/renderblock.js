@@ -1,6 +1,4 @@
 (function () {
-  console.log("RENDERBLOCK loaded");
-
   try {
     navigator.serviceWorker.getRegistrations().then(function (regs) {
       regs.forEach(function (r) { r.unregister(); });

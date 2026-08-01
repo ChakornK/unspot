@@ -49,8 +49,7 @@ var patterns = [
 function isLoginRelated(details) {
   var url = details.url;
   var origin = details.originUrl || details.documentUrl || "";
-  return url.indexOf("accounts.spotify.com") !== -1 ||
-         origin.indexOf("accounts.spotify.com") !== -1;
+  return url.includes("accounts.spotify.com") || origin.includes("accounts.spotify.com");
 }
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -63,17 +62,13 @@ browser.webRequest.onBeforeRequest.addListener(
       return { cancel: true };
     }
     if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(url)) {
-      console.log("REQ BLOCK font", host, url.substring(0, 120));
       return { cancel: true };
     }
     if (isSpotify.test(host)) {
-      if (spotifyTelemetry.indexOf(host) !== -1) {
-        console.log("REQ BLOCK telemetry", host, url.substring(0, 120));
+      if (spotifyTelemetry.includes(host)) {
         return { cancel: true };
       }
-      console.log("REQ ALLOW spotify", host, url.substring(0, 120));
     } else {
-      console.log("REQ BLOCK 3rd-party", host, url.substring(0, 120));
       return { cancel: true };
     }
   },

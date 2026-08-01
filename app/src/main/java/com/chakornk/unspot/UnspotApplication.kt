@@ -19,15 +19,11 @@ class UnspotApplication : Application() {
 			?: throw IllegalStateException("GeckoRuntime not initialized. Are you in the main process?")
 
 	val webExtensionManager = WebExtensionManager()
+	private var _geckoSession: GeckoSession? = null
+	val geckoSession: GeckoSession
+		get() = _geckoSession ?: throw IllegalStateException("GeckoSession not initialized")
 
-// ponytail: GeckoSession owned by Application so it outlives the Activity.
-// The foreground MediaPlaybackService keeps the process alive while playing,
-// so the session (and Spotify audio) survives the Activity being killed in the background.
-private var _geckoSession: GeckoSession? = null
-val geckoSession: GeckoSession
-	get() = _geckoSession ?: throw IllegalStateException("GeckoSession not initialized")
-
-var onLocationChanged: ((String) -> Unit)? = null
+	var onLocationChanged: ((String) -> Unit)? = null
 
 	override fun onCreate() {
 		super.onCreate()
