@@ -48,8 +48,16 @@ var patterns = [
   "*://*.adsafeprotected.com/*",
 ];
 
+function isLoginRelated(details) {
+  var url = details.url;
+  var origin = details.originUrl || details.documentUrl || "";
+  return url.indexOf("accounts.spotify.com") !== -1 ||
+         origin.indexOf("accounts.spotify.com") !== -1;
+}
+
 browser.webRequest.onBeforeRequest.addListener(
   function (details) {
+    if (isLoginRelated(details)) return;
     var url = details.url;
     var host = (url.split("/")[2] || "").split(":")[0];
     if (details.type === "image") {
@@ -83,6 +91,7 @@ var cachePatterns = [
 
 browser.webRequest.onHeadersReceived.addListener(
   function (details) {
+    if (isLoginRelated(details)) return;
     var url = details.url;
     var isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
       /\.scdn\.co$/.test((url.split("/")[2] || "").split(":")[0]) ||
