@@ -41,21 +41,4 @@
 
     HTMLCanvasElement.prototype.getContext = function () { return null; };
   }
-
-  (function () {
-    var origFetch = window.fetch;
-    var origXHROpen = XMLHttpRequest.prototype.open;
-    var count = 0;
-    window.fetch = function () {
-      count++;
-      var url = arguments[0];
-      if (typeof url === "string") console.log("NET", count, "fetch", url.substring(0, 150));
-      return origFetch.apply(this, arguments);
-    };
-    XMLHttpRequest.prototype.open = function () {
-      count++;
-      console.log("NET", count, "xhr", arguments[1] ? arguments[1].substring(0, 150) : "");
-      return origXHROpen.apply(this, arguments);
-    };
-  })();
 })();

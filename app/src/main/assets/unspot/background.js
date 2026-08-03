@@ -58,7 +58,6 @@ browser.webRequest.onBeforeRequest.addListener(
     var url = details.url;
     var host = (url.split("/")[2] || "").split(":")[0];
     if (details.type === "image") {
-      console.log("REQ BLOCK image", host, url.substring(0, 120));
       return { cancel: true };
     }
     if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(url)) {
@@ -69,7 +68,7 @@ browser.webRequest.onBeforeRequest.addListener(
         return { cancel: true };
       }
     } else {
-      return { cancel: true };
+      return { cancel: false };
     }
   },
   { urls: patterns },
