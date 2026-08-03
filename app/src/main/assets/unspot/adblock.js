@@ -5,7 +5,7 @@ document.createElement = (() => {
     if (element instanceof HTMLMediaElement) {
       const oldPlay = element.play;
       element.play = function () {
-        if (!this.src.startsWith("blob:https://open.spotify.com/") && this.duration < 40) {
+        if (!this.src.startsWith("blob:https://open.spotify.com/") && this.duration < 67) {
           this.dispatchEvent(new Event("play"));
           const oldSrc = this.src.toString();
           setTimeout(() => {
