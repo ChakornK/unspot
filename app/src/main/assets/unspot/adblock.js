@@ -18,7 +18,7 @@ document.createElement = (() => {
               }
               this.currentTime = this.duration;
               this.dispatchEvent(new Event("ended"));
-            }, 100);
+            }, 400);
             setTimeout(() => {
               try {
                 clearInterval(inter);
