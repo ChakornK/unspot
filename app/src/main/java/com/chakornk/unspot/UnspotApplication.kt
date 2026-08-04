@@ -83,6 +83,7 @@ class UnspotApplication : Application() {
 		})
 
 		session.open(runtime)
+		session.setActive(true)
 		session.loadUri("https://open.spotify.com")
 		_geckoSession = session
 	}
