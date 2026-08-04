@@ -3,7 +3,12 @@ let Platform;
   window.rspackChunkclient_web = window.rspackChunkclient_web || [];
 
   const definePlatform = () => {
-    Object.defineProperty(window, "Platform", { value: Object.getOwnPropertyNames(Platform).reduce((p, c) => ({ ...p, [c]: Platform[c] }), {}) });
+    Object.defineProperty(window, "Platform", {
+      value: Object.getOwnPropertyNames(Platform).reduce(
+        (p, c) => ({ ...p, [c]: Platform[c] }),
+        {},
+      ),
+    });
   };
 
   window.rspackChunkclient_web.push([
@@ -12,7 +17,9 @@ let Platform;
     function installHook(require) {
       const originalD = require.d.bind(require);
       require.d = function (exports, descriptors) {
-        if (Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")) {
+        if (
+          Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")
+        ) {
           const originalGetter = descriptors.createPlatformWeb;
           descriptors = Object.assign({}, descriptors, {
             createPlatformWeb: function () {
@@ -37,7 +44,8 @@ let Platform;
       get: function (_, prop) {
         if (!window._Platform) return undefined;
         if (prop === "then") return Promise.resolve(window._Platform);
-        return window._Platform.getRegistry()._map.get(Symbol.for(prop)).instance;
+        return window._Platform.getRegistry()._map.get(Symbol.for(prop))
+          .instance;
       },
       ownKeys: function () {
         if (!window._Platform) return [];
@@ -57,7 +65,10 @@ let npb = document.querySelector("aside");
 
 function typeText(input, text) {
   input.focus();
-  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+  const nativeSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  ).set;
   let current = "";
   for (const char of text) {
     current += char;
@@ -89,7 +100,8 @@ const handlers = {
   },
   goToLogin: () => {
     if (window.location.href.includes("login?")) return true;
-    window.location.href = "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F&allow_password=1";
+    window.location.href =
+      "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F&allow_password=1";
     return true;
   },
   login: (data) => {
@@ -112,8 +124,12 @@ const handlers = {
     if (!state) return null;
     return {
       title: state.track_window.current_track.name,
-      artist: state.track_window.current_track.artists.map((a) => a.name).join(", "),
-      albumArt: state.track_window.current_track.album.images.reduce((acc, img) => (img.height > acc.height ? img : acc)).url,
+      artist: state.track_window.current_track.artists
+        .map((a) => a.name)
+        .join(", "),
+      albumArt: state.track_window.current_track.album.images.reduce(
+        (acc, img) => (img.height > acc.height ? img : acc),
+      ).url,
       isPlaying: !state.paused,
       currentTime: state.position,
       totalTime: state.track_window.current_track.duration_ms,
@@ -160,7 +176,10 @@ const handlers = {
   },
 
   getLibraryData: async () => {
-    const [{ items }, currentState] = await Promise.all([await Platform.LibraryAPI.getContents(), await Platform.PlayerSDK.harmony.getCurrentState()]);
+    const [{ items }, currentState] = await Promise.all([
+      await Platform.LibraryAPI.getContents(),
+      await Platform.PlayerSDK.harmony.getCurrentState(),
+    ]);
     if (items === null) return null;
     const getSubtitle = (item) => {
       switch (item.type) {
@@ -178,7 +197,9 @@ const handlers = {
       items: items.map((item) => ({
         uri: item.uri,
         type: item.type,
-        cover: item.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
+        cover: item.images.reduce((acc, img) =>
+          img.height < acc.height ? img : acc,
+        ).url,
         title: item.name,
         subtitle: getSubtitle(item),
         isActive: item.uri === (currentState?.context?.uri ?? ""),
@@ -190,7 +211,9 @@ const handlers = {
     const playlist = await Platform.PlaylistAPI.getPlaylistMetadata(uri);
     return {
       uri: playlist.uri,
-      cover: playlist.images.reduce((acc, img) => (img.height > acc.height ? img : acc)).url,
+      cover: playlist.images.reduce((acc, img) =>
+        img.height > acc.height ? img : acc,
+      ).url,
       title: playlist.name,
       description: playlist.description,
       duration: playlist.duration.milliseconds,
@@ -198,17 +221,24 @@ const handlers = {
       collaborators: playlist.collaborators.items.map((c) => ({
         name: c.user.displayName,
         uri: c.user.uri,
-        image: c.user.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
+        image: c.user.images.reduce((acc, img) =>
+          img.height < acc.height ? img : acc,
+        ).url,
       })),
     };
   },
   getPlaylistContent: async ({ uri, offset }) => {
-    const contents = await Platform.PlaylistAPI.getPlaylistContents(uri, { limit: 50, offset: offset ?? 0 });
+    const contents = await Platform.PlaylistAPI.getPlaylistContents(uri, {
+      limit: 50,
+      offset: offset ?? 0,
+    });
     contents.items = contents.items.map((item) => ({
       index: offset + item.playIndex,
       uri: item.uri,
       type: item.type,
-      cover: item.album.images.reduce((acc, img) => (img.height < acc.height ? img : acc)).url,
+      cover: item.album.images.reduce((acc, img) =>
+        img.height < acc.height ? img : acc,
+      ).url,
       title: item.name,
       subtitle: item.artists.map((a) => a.name).join(", "),
       duration: item.duration.milliseconds,
@@ -227,7 +257,10 @@ const postMessage = (message) => {
   );
 };
 window.addEventListener("message", async (event) => {
-  if (event.source === window && event?.data?.direction === "from-content-script") {
+  if (
+    event.source === window &&
+    event?.data?.direction === "from-content-script"
+  ) {
     const { message } = event.data;
 
     console.log("Received message from app:", message);
@@ -282,11 +315,20 @@ const postLibraryUpdate = async () => {
     },
     options: {},
   });
+
+  let lastFullStateUpdate = 0;
   Platform.PlayerSDK.harmony._controller._listeners.progress.push({
     listener: async () => {
-      const progress = await handlers.getPlaybackProgress();
-      if (!progress) return;
-      postMessage({ type: "playbackProgressUpdate", data: progress });
+      if (Date.now() - lastFullStateUpdate > 10000) {
+        const state = await handlers.getPlaybackState();
+        if (!state) return;
+        postMessage({ type: "playbackStateUpdate", data: state });
+        lastFullStateUpdate = Date.now();
+      } else {
+        const progress = await handlers.getPlaybackProgress();
+        if (!progress) return;
+        postMessage({ type: "playbackProgressUpdate", data: progress });
+      }
     },
     options: {},
   });
@@ -301,7 +343,9 @@ const postLibraryUpdate = async () => {
       start: noop,
       addEventListener: noop,
       removeEventListener: noop,
-      dispatchEvent: function () { return true; },
+      dispatchEvent: function () {
+        return true;
+      },
     };
   };
 })();
@@ -310,11 +354,14 @@ const postLibraryUpdate = async () => {
   while (!Platform?.PlayerSDK?.harmony?._client?._deviceDescriptor) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  const originalDeviceDescriptor = Platform.PlayerSDK.harmony._client._deviceDescriptor;
-  Platform.PlayerSDK.harmony._client._deviceDescriptor = new Promise((resolve) => {
-    originalDeviceDescriptor.then((deviceDescriptor) => {
-      deviceDescriptor._name = "Unspot";
-      resolve(deviceDescriptor);
-    });
-  });
+  const originalDeviceDescriptor =
+    Platform.PlayerSDK.harmony._client._deviceDescriptor;
+  Platform.PlayerSDK.harmony._client._deviceDescriptor = new Promise(
+    (resolve) => {
+      originalDeviceDescriptor.then((deviceDescriptor) => {
+        deviceDescriptor._name = "Unspot";
+        resolve(deviceDescriptor);
+      });
+    },
+  );
 })();
