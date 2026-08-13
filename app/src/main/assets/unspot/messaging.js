@@ -1,6 +1,6 @@
 let Platform;
 (() => {
-  window.rspackChunkclient_web = window.rspackChunkclient_web || [];
+  const CHUNK_GLOBALS = ["rspackChunk", "rspackChunkclient_web", "webpackChunkclient_web"];
 
   const definePlatform = () => {
     Object.defineProperty(window, "Platform", {
@@ -11,32 +11,48 @@ let Platform;
     });
   };
 
-  window.rspackChunkclient_web.push([
-    ["__platform_hook__"],
-    {},
-    function installHook(require) {
-      const originalD = require.d.bind(require);
-      require.d = function (exports, descriptors) {
-        if (
-          Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")
-        ) {
-          const originalGetter = descriptors.createPlatformWeb;
-          descriptors = Object.assign({}, descriptors, {
-            createPlatformWeb: function () {
-              const originalFn = originalGetter();
-              return async function createPlatformWeb(...args) {
-                const platform = await originalFn.apply(this, args);
-                window._Platform = platform;
-                definePlatform();
-                return platform;
-              };
-            },
-          });
-        }
-        originalD(exports, descriptors);
-      };
-    },
-  ]);
+  const installHook = (require) => {
+    const originalD = require.d.bind(require);
+    require.d = function (exports, descriptors) {
+      if (
+        Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")
+      ) {
+        const originalGetter = descriptors.createPlatformWeb;
+        descriptors = Object.assign({}, descriptors, {
+          createPlatformWeb: function () {
+            const originalFn = originalGetter();
+            return async function createPlatformWeb(...args) {
+              const platform = await originalFn.apply(this, args);
+              window._Platform = platform;
+              definePlatform();
+              return platform;
+            };
+          },
+        });
+      }
+      originalD(exports, descriptors);
+    };
+  };
+
+  const hookChunkRegistry = () => {
+    for (const name of CHUNK_GLOBALS) {
+      const chunks = window[name];
+      if (chunks && typeof chunks.push === "function") {
+        window[name].push([["__platform_hook__"], {}, installHook]);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (!hookChunkRegistry()) {
+    const deadline = Date.now() + 15000;
+    const probe = setInterval(() => {
+      if (hookChunkRegistry() || Date.now() > deadline) {
+        clearInterval(probe);
+      }
+    }, 10);
+  }
 
   Platform = new Proxy(
     {},
@@ -44,8 +60,8 @@ let Platform;
       get: function (_, prop) {
         if (!window._Platform) return undefined;
         if (prop === "then") return Promise.resolve(window._Platform);
-        return window._Platform.getRegistry()._map.get(Symbol.for(prop))
-          .instance;
+        const entry = window._Platform.getRegistry()._map.get(Symbol.for(prop));
+        return entry && entry.instance;
       },
       ownKeys: function () {
         if (!window._Platform) return [];
@@ -263,7 +279,6 @@ window.addEventListener("message", async (event) => {
   ) {
     const { message } = event.data;
 
-    console.log("Received message from app:", message);
     const handler = handlers[message.type];
     if (handler) {
       try {
