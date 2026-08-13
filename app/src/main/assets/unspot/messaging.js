@@ -34,24 +34,9 @@ let Platform;
     };
   };
 
-  const hookChunkRegistry = () => {
-    for (const name of CHUNK_GLOBALS) {
-      const chunks = window[name];
-      if (chunks && typeof chunks.push === "function") {
-        window[name].push([["__platform_hook__"], {}, installHook]);
-        return true;
-      }
-    }
-    return false;
-  };
-
-  if (!hookChunkRegistry()) {
-    const deadline = Date.now() + 15000;
-    const probe = setInterval(() => {
-      if (hookChunkRegistry() || Date.now() > deadline) {
-        clearInterval(probe);
-      }
-    }, 10);
+  for (const name of CHUNK_GLOBALS) {
+    window[name] = window[name] || [];
+    window[name].push([["__platform_hook__"], {}, installHook]);
   }
 
   Platform = new Proxy(
