@@ -11,25 +11,30 @@
   "content_scripts": [
     {
       "matches": ["*://*.spotify.com/*"],
-      "js": ["messagingWrapper.js"]
+      "js": ["messagingWrapper.js"],
+      "run_at": "document_start",
+      "all_frames": true
     },
     {
       "matches": ["*://open.spotify.com/*"],
       "js": ["renderblock.js"],
       "run_at": "document_start",
-      "world": "MAIN"
+      "world": "MAIN",
+      "all_frames": true
     },
     {
       "matches": ["*://*.spotify.com/*"],
       "js": ["messaging.js"],
       "run_at": "document_start",
-      "world": "MAIN"
+      "world": "MAIN",
+      "all_frames": true
     },
     {
-      "matches": ["*://open.spotify.com/*"],
+      "matches": ["*://*.spotify.com/*"],
       "js": ["adblock.js"],
       "run_at": "document_start",
-      "world": "MAIN"
+      "world": "MAIN",
+      "all_frames": true
     }
   ],
   "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons", "webRequest", "webRequestBlocking"],
