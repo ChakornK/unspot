@@ -365,3 +365,72 @@ const postLibraryUpdate = async () => {
     },
   );
 })();
+
+// Disable Harmony ad managers via the SDK's AdManagers service.
+(async () => {
+  try {
+    while (!Platform?.AdManagers?.audio?.disable) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    const adManagers = Platform.AdManagers;
+
+    const disableManager = (manager) => {
+      if (!manager) return;
+      try {
+        if (typeof manager.disable === "function") manager.disable();
+        else if (typeof manager.disableLeaderboard === "function") manager.disableLeaderboard();
+        else if ("enabled" in manager) manager.enabled = false;
+      } catch (e) {}
+    };
+
+    const managerPaths = [
+      "audio",
+      "inStreamApi",
+      "sponsoredPlaylist",
+      "leaderboard",
+      "hpto",
+      "home",
+      "survey",
+      "vto.manager",
+      "embeddedAd.embeddedAdManager",
+      "embeddedPlaylist.embeddedPlaylistManager",
+    ];
+    for (const path of managerPaths) {
+      let node = adManagers;
+      let ok = true;
+      for (const key of path.split(".")) {
+        if (!node || typeof node !== "object") { ok = false; break; }
+        node = node[key];
+      }
+      if (ok) disableManager(node);
+    }
+
+    const connector =
+      adManagers.audio && adManagers.audio.inStreamApi && adManagers.audio.inStreamApi.adsCoreConnector;
+    const SLOT_IDS = [
+      "preroll", "stream", "embedded-npv", "embedded-playlist-leavebehind",
+      "embedded-playlist", "hpto", "leaderboard", "podcast-midroll-1",
+      "podcast-midroll-2", "podcast-midroll-3", "podcast-midroll-4",
+      "podcast-midroll-5", "podcast-postroll", "podcast-preroll",
+    ];
+
+    const clearSlot = (slotId) => {
+      try {
+        if (connector && typeof connector.clearSlot === "function") connector.clearSlot(slotId);
+      } catch (e) {}
+    };
+    for (const slot of SLOT_IDS) clearSlot(slot);
+    if (connector && typeof connector.subscribeToSlot === "function") {
+      for (const slot of SLOT_IDS) {
+        try { connector.subscribeToSlot(slot, () => clearSlot(slot)); } catch (e) {}
+      }
+    }
+
+    setInterval(() => {
+      try {
+        if (adManagers.audio && adManagers.audio.enabled !== false) disableManager(adManagers.audio);
+      } catch (e) {}
+    }, 10000);
+  } catch (e) {}
+})();
+
