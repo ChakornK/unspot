@@ -8,9 +8,7 @@
 
   var authorization = "";
   var deviceId = "";
-  var totalAdsRemoved = 0;
   var originalFetch = window.fetch;
-  var wsAccessToken = "";
 
   // Ads play through the same hosts as real tracks; the only reliable element-level
   // signals are a direct (non-blob) ad CDN URL or a short duration (ads: 15/30/60s).
@@ -89,23 +87,6 @@
     };
   } catch (e) {}
 
-  // Wrap new Audio() constructor so detached instances are covered by play guard.
-  var audioInstances = [];
-  try {
-    var OrigAudio = window.Audio;
-    window.Audio = function () {
-      var a = new OrigAudio();
-      audioInstances.push(a);
-      var op = a.play;
-      a.play = function () {
-        if (isAdMedia(this)) { killAd(this); return Promise.resolve(); }
-        return op.apply(this, arguments);
-      };
-      return a;
-    };
-    window.Audio.prototype = OrigAudio.prototype;
-  } catch (e) {}
-
   // Prototype-level guards for elements created before our hooks (incl. new Audio()).
   try {
     var origProtoPlay = HTMLMediaElement.prototype.play;
@@ -180,8 +161,6 @@
   }, 200);
 
 
-  // --- WebSocket Hook ---
-
   var _WS = WebSocket;
 
   function processWsMessage(event) {
@@ -193,6 +172,21 @@
       for (var i = 0; i < data.payloads.length; i++) {
         var payload = data.payloads[i];
 
+        // Drop ad payload
+        if (payload.cluster && payload.cluster.player_state && payload.cluster.player_state.track) {
+          var ctrack = payload.cluster.player_state.track;
+          var adCluster = /:ad:/.test(String(ctrack.uri || "")) ||
+                          /^ads\//.test(String(ctrack.provider || "")) ||
+                          /^ads\//.test(String(ctrack.uri || "")) ||
+                          String(ctrack.content_type || "").toUpperCase() === "AD";
+          if (adCluster) {
+            data.payloads.splice(i, 1);
+            i--;
+            modified = true;
+            continue;
+          }
+        }
+
         if (payload.type === "replace_state" && payload.state_machine) {
           var sm = payload.state_machine;
           if (sm && sm.states && sm.tracks) {
@@ -203,28 +197,15 @@
                   var rep = JSON.parse(JSON.stringify(next));
                   rep.state_id = sm.states[j].state_id;
                   sm.states[j] = rep;
-                  modified = true;
-                  totalAdsRemoved++;
-                  console.log("[unspot] WS removed ad state at index " + j);
                 } else {
                   sm.states[j] = shortenState(sm.states[j], sm.tracks[sm.states[j].track]);
-                  modified = true;
-                  console.log("[unspot] WS shortened ad state at index " + j);
                 }
+                modified = true;
               }
             }
             payload.state_machine = sm;
             data.payloads[i] = payload;
           }
-        }
-
-        if (payload.cluster && payload.cluster.player_state &&
-            payload.cluster.player_state.track &&
-            payload.cluster.player_state.track.provider === "ads/inject_tracks") {
-          console.log("[unspot] blocked injected ad");
-          payload.cluster.player_state.track = null;
-          data.payloads[i] = payload;
-          modified = true;
         }
       }
 
@@ -246,11 +227,6 @@
   WebSocket = function (url, protocols) {
     var ws = protocols ? new _WS(url, protocols) : new _WS(url);
     var _origOnMessage = null;
-    var u = "" + url;
-    try {
-      var m = /[?&]access_token=([^&]+)/.exec(u);
-      if (m) wsAccessToken = m[1];
-    } catch (e) {}
 
     ws.addEventListener("message", function (event) {
       if (!_origOnMessage) return;
@@ -284,11 +260,9 @@
   WebSocket.CLOSING = _WS.CLOSING;
   WebSocket.CLOSED = _WS.CLOSED;
 
-  // --- Ad Detection ---
-
   function isAdTrack(track) {
     if (!track || !track.metadata) return false;
-    var uri = track.metadata.uri || "";
+    var uri = track.metadata.uri || track.uri || "";
     return uri.includes(":ad:") || track.content_type === "AD";
   }
 
@@ -297,8 +271,6 @@
     var track = stateMachine.tracks[state.track];
     return isAdTrack(track);
   }
-
-  // --- State Machine Manipulation ---
 
   function getNextNonAdState(stateMachine, fromIndex) {
     var states = stateMachine.states;
@@ -352,7 +324,7 @@
     } catch (e) { return null; }
   }
 
-  async function manipulateStateMachine(stateMachine, startingStateIndex) {
+  async function manipulateStateMachine(stateMachine) {
     if (!stateMachine || !stateMachine.states || !stateMachine.tracks) return stateMachine;
 
     var states = stateMachine.states;
@@ -363,16 +335,12 @@
       if (!isAdState(state, stateMachine)) continue;
 
       var track = tracks[state.track];
-      var uri = (track && track.metadata && track.metadata.uri) || "unknown";
-
       var nextState = getNextNonAdState(stateMachine, i);
 
       if (nextState) {
         var replacement = JSON.parse(JSON.stringify(nextState));
         replacement.state_id = state.state_id;
         states[i] = replacement;
-        totalAdsRemoved++;
-        console.log("[unspot] removed ad: " + uri);
       } else {
         var fetched = await fetchMoreStates(
           stateMachine.state_machine_id,
@@ -392,15 +360,11 @@
             fetchedNext.state_id = state.state_id;
             fetchedNext.transitions = {};
             states[i] = fetchedNext;
-            totalAdsRemoved++;
-            console.log("[unspot] removed ad (fetched more): " + uri);
           } else {
             states[i] = shortenState(state, track);
-            console.log("[unspot] shortened ad: " + uri);
           }
         } else {
           states[i] = shortenState(state, track);
-          console.log("[unspot] shortened ad (no auth): " + uri);
         }
       }
     }
@@ -409,8 +373,6 @@
     stateMachine.tracks = tracks;
     return stateMachine;
   }
-
-  // --- Fetch Hook ---
 
   window.fetch = function (url, init) {
     var urlStr = typeof url === "string" ? url : (url && url.url) || "";
@@ -444,8 +406,7 @@
         return response.json().then(async function (data) {
           if (!data || !data.state_machine) return clone;
           try {
-            var idx = (data.updated_state_ref && data.updated_state_ref.state_index) || 0;
-            data.state_machine = await manipulateStateMachine(data.state_machine, idx);
+            data.state_machine = await manipulateStateMachine(data.state_machine);
             return new Response(JSON.stringify(data), {
               status: response.status,
               statusText: response.statusText,
