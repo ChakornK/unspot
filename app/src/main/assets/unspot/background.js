@@ -28,10 +28,6 @@ var adApiPaths = [
   /\/gabo-receiver-service\//,
 ];
 
-// Ad audio hosts/paths to block at the network layer (catches iframes/workers/MediaSource)
-// NOTE: we deliberately DO NOT block ad audio downloads — the DOM layer mutes the ad
-// element (see adblock.js muteEl) so the ESK sees a successful playback and advances
-// to the next track. Blocking the bytes errors the element and sticks the player.
 var adAudioPatterns = [
   /\/mp3\/(ad|preview)/i,
 ];
@@ -88,7 +84,6 @@ browser.webRequest.onBeforeRequest.addListener(
     if (/\.(woff2?|ttf|otf|eot)(\?|$)/.test(url)) {
       return { cancel: true };
     }
-    // Block ad API endpoints (uBlock-style denylist)
     if (/spclient.*\.spotify\.com/.test(host)) {
       var path = url.replace(/^https?:\/\/[^/]+/, "");
       for (var i = 0; i < adApiPaths.length; i++) {
@@ -120,7 +115,7 @@ browser.webRequest.onHeadersReceived.addListener(
     if (isLoginRelated(details)) return;
     var url = details.url;
     var headers = details.responseHeaders || [];
-    // Relax CSP on Spotify pages to allow our MAIN world script
+    // allow MAIN world script
     if (/open\.spotify\.com/.test(url)) {
       for (var i = 0; i < headers.length; i++) {
         if (headers[i].name.toLowerCase() === "content-security-policy") {

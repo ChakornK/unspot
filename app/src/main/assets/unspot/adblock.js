@@ -1,8 +1,3 @@
-// unspot adblock: strips ad tracks from the Spotify web player state machine and
-// mutes any ad media element that still gets created. Ads ride the same audio-fa
-// + widevine pipeline as tracks, so the DOM layer must silence them. Muting (not
-// removing/erroring) the element lets the ESK see a successful playback and
-// advance to the next track.
 (function () {
   "use strict";
 
@@ -10,19 +5,16 @@
   var deviceId = "";
   var originalFetch = window.fetch;
 
-  // Ads play through the same hosts as real tracks; the only reliable element-level
-  // signals are a direct (non-blob) ad CDN URL or a short duration (ads: 15/30/60s).
   var isAdMedia = function (el) {
     var src = String(el.currentSrc || el.src || "");
     if (/:ad:/.test(src)) return true;
     if (src.includes("adstudio") || src.includes("audio-ads")) return true;
     var dur = el.duration || 0;
+    // i like my magic numbers
     if (dur > 0 && dur < 67) return true;
     return false;
   };
 
-  // Force volume/muted to 0 (with hardened property descriptors) so the ad plays
-  // silently to its natural end and the ESK advances. Avoids erroring the element.
   var muteEl = function (el) {
     try { el.muted = true; } catch (e) {}
     try { el.volume = 0; } catch (e) {}
@@ -33,7 +25,6 @@
     if (el.setAttribute) { try { el.setAttribute("muted", ""); } catch (e) {} }
   };
 
-  // Mute + jump to end + fire ended so a detected ad completes instantly.
   var killAd = function (el) {
     var oldSrc = String(el.currentSrc || el.src || "");
     var dur = el.duration || 0;
@@ -51,7 +42,6 @@
     setTimeout(function () { try { clearInterval(guard); } catch (e) {} }, 4000);
   };
 
-  // Hook createElement: wire guards onto every media element as it's made.
   try {
     var origCreate = document.createElement;
     document.createElement = function (tag) {
@@ -87,7 +77,6 @@
     };
   } catch (e) {}
 
-  // Prototype-level guards for elements created before our hooks (incl. new Audio()).
   try {
     var origProtoPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
@@ -108,9 +97,6 @@
     }, true);
   } catch (e) {}
 
-  // Prototype-level src guard: ads are assigned a DIRECT scdn URL (tracks use
-  // blob:/MSE). For ads, let the element play its real source but MUTED so the
-  // ESK sees a successful playback and advances (blob-substitution errors + sticks).
   try {
     var origSrcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
     Object.defineProperty(HTMLMediaElement.prototype, "src", {
@@ -137,9 +123,6 @@
     });
   } catch (e) {}
 
-  // Periodic scanner: catch media elements that loaded an ad even if created before
-  // our hooks (pierces shadow roots). Duration check covers blob-src ads (tracks are
-  // 120s+; ads are 15/30/60s).
   setInterval(function () {
     try {
       var scanEls;
@@ -159,9 +142,6 @@
       }
     } catch (e) {}
   }, 200);
-
-
-  var _WS = WebSocket;
 
   function processWsMessage(event) {
     try {
@@ -224,6 +204,7 @@
     }
   }
 
+  var _WS = WebSocket;
   WebSocket = function (url, protocols) {
     var ws = protocols ? new _WS(url, protocols) : new _WS(url);
     var _origOnMessage = null;
