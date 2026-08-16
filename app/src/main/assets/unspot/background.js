@@ -1,5 +1,5 @@
 // https://github.com/Isaaker/Spotify-AdsList
-var spotifyTelemetry = [
+const spotifyTelemetry = [
   "log.spotify.com",
   "log2.spotify.com",
   "analytics.spotify.com",
@@ -22,19 +22,19 @@ var spotifyTelemetry = [
 ];
 
 // Ad API path patterns to block (uBlock/abba23 style denylist)
-var adApiPaths = [
+const adApiPaths = [
   /\/ads\//,
   /\/ad-logic\//,
   /\/gabo-receiver-service\//,
 ];
 
-var adAudioPatterns = [
+const adAudioPatterns = [
   /\/mp3\/(ad|preview)/i,
 ];
 
-var isSpotify = /(^|\.)spotify\.com$/;
+const isSpotify = /(^|\.)spotify\.com$/;
 
-var patterns = [
+const patterns = [
   "*://*.spotify.com/*",
   "*://*.scdn.co/*",
   "*://*.doubleclick.net/*",
@@ -58,13 +58,13 @@ var patterns = [
 ];
 
 function isLoginRelated(details) {
-  var url = details.url;
-  var origin = details.originUrl || details.documentUrl || "";
+  const url = details.url;
+  const origin = details.originUrl || details.documentUrl || "";
   return url.includes("accounts.spotify.com") || origin.includes("accounts.spotify.com");
 }
 
 function isAdAudioRequest(url) {
-  var i;
+  let i;
   for (i = 0; i < adAudioPatterns.length; i++) {
     if (adAudioPatterns[i].test(url)) return true;
   }
@@ -74,10 +74,10 @@ function isAdAudioRequest(url) {
 browser.webRequest.onBeforeRequest.addListener(
   (details) => {
     if (isLoginRelated(details)) return;
-    var url = details.url;
-    var host = (url.split("/")[2] || "").split(":")[0];
-    var path;
-    var j;
+    const url = details.url;
+    const host = (url.split("/")[2] || "").split(":")[0];
+    let path;
+    let j;
     if (isAdAudioRequest(url)) {
       return { cancel: true };
     }
@@ -107,7 +107,7 @@ browser.webRequest.onBeforeRequest.addListener(
   ["blocking"],
 );
 
-var cachePatterns = [
+const cachePatterns = [
   "*://*.spotify.com/*",
   "*://*.scdn.co/*",
   "*://*.spotifycdn.com/*",
@@ -116,11 +116,10 @@ var cachePatterns = [
 browser.webRequest.onHeadersReceived.addListener(
   (details) => {
     if (isLoginRelated(details)) return;
-    var url = details.url;
-    var headers = details.responseHeaders || [];
-    var i;
-    var isStatic;
-    var found;
+    const url = details.url;
+    const headers = details.responseHeaders || [];
+    let i;
+    let found;
     // allow MAIN world script
     if (/open\.spotify\.com/.test(url)) {
       for (i = 0; i < headers.length; i++) {
@@ -129,7 +128,7 @@ browser.webRequest.onHeadersReceived.addListener(
         }
       }
     }
-    isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
+    const isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
       /\.scdn\.co$/.test((url.split("/")[2] || "").split(":")[0]) ||
       /\.spotifycdn\.com$/.test((url.split("/")[2] || "").split(":")[0]);
     if (!isStatic) return { responseHeaders: headers };

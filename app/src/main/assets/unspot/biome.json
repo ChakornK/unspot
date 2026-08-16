@@ -16,9 +16,6 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "correctness": {
-        "noInnerDeclarations": "off"
-      },
       "suspicious": {
         "noGlobalAssign": "off"
       },
