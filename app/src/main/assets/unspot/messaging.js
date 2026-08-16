@@ -13,13 +13,13 @@ let Platform;
 
   const installHook = (require) => {
     const originalD = require.d.bind(require);
-    require.d = function (exports, descriptors) {
+    require.d = (exports, descriptors) => {
       if (
-        Object.prototype.hasOwnProperty.call(descriptors, "createPlatformWeb")
+        Object.hasOwn(descriptors, "createPlatformWeb")
       ) {
         const originalGetter = descriptors.createPlatformWeb;
         descriptors = Object.assign({}, descriptors, {
-          createPlatformWeb: function () {
+          createPlatformWeb: () => {
             const originalFn = originalGetter();
             return async function createPlatformWeb(...args) {
               const platform = await originalFn.apply(this, args);
@@ -42,13 +42,13 @@ let Platform;
   Platform = new Proxy(
     {},
     {
-      get: function (_, prop) {
+      get: (_, prop) => {
         if (!window._Platform) return undefined;
         if (prop === "then") return Promise.resolve(window._Platform);
         const entry = window._Platform.getRegistry()._map.get(Symbol.for(prop));
-        return entry && entry.instance;
+        return entry?.instance;
       },
-      ownKeys: function () {
+      ownKeys: () => {
         if (!window._Platform) return [];
         return [
           ...window._Platform
@@ -62,7 +62,7 @@ let Platform;
   window.Platform = Platform;
 })();
 
-let npb = document.querySelector("aside");
+const _npb = document.querySelector("aside");
 
 function typeText(input, text) {
   input.focus();
@@ -333,7 +333,7 @@ const postLibraryUpdate = async () => {
     options: {},
   });
 
-  const noop = function () {};
+  const noop = () => {};
   window.MessageChannel = function () {
     this.port1 = this.port2 = {
       onmessage: null,
@@ -343,9 +343,7 @@ const postLibraryUpdate = async () => {
       start: noop,
       addEventListener: noop,
       removeEventListener: noop,
-      dispatchEvent: function () {
-        return true;
-      },
+      dispatchEvent: () => true,
     };
   };
 })();
@@ -380,7 +378,7 @@ const postLibraryUpdate = async () => {
         if (typeof manager.disable === "function") manager.disable();
         else if (typeof manager.disableLeaderboard === "function") manager.disableLeaderboard();
         else if ("enabled" in manager) manager.enabled = false;
-      } catch (e) {}
+      } catch (_e) {}
     };
 
     const managerPaths = [
@@ -406,7 +404,7 @@ const postLibraryUpdate = async () => {
     }
 
     const connector =
-      adManagers.audio && adManagers.audio.inStreamApi && adManagers.audio.inStreamApi.adsCoreConnector;
+      adManagers.audio?.inStreamApi?.adsCoreConnector;
     const SLOT_IDS = [
       "preroll", "stream", "embedded-npv", "embedded-playlist-leavebehind",
       "embedded-playlist", "hpto", "leaderboard", "podcast-midroll-1",
@@ -417,20 +415,20 @@ const postLibraryUpdate = async () => {
     const clearSlot = (slotId) => {
       try {
         if (connector && typeof connector.clearSlot === "function") connector.clearSlot(slotId);
-      } catch (e) {}
+      } catch (_e) {}
     };
     for (const slot of SLOT_IDS) clearSlot(slot);
     if (connector && typeof connector.subscribeToSlot === "function") {
       for (const slot of SLOT_IDS) {
-        try { connector.subscribeToSlot(slot, () => clearSlot(slot)); } catch (e) {}
+        try { connector.subscribeToSlot(slot, () => clearSlot(slot)); } catch (_e) {}
       }
     }
 
     setInterval(() => {
       try {
         if (adManagers.audio && adManagers.audio.enabled !== false) disableManager(adManagers.audio);
-      } catch (e) {}
+      } catch (_e) {}
     }, 10000);
-  } catch (e) {}
+  } catch (_e) {}
 })();
 

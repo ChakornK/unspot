@@ -1,11 +1,11 @@
-(function () {
-  "use strict";
+(() => {
+  
 
   var authorization = "";
   var deviceId = "";
   var originalFetch = window.fetch;
 
-  var isAdMedia = function (el) {
+  var isAdMedia = (el) => {
     var src = String(el.currentSrc || el.src || "");
     if (/:ad:/.test(src)) return true;
     if (src.includes("adstudio") || src.includes("audio-ads")) return true;
@@ -15,43 +15,43 @@
     return false;
   };
 
-  var muteEl = function (el) {
-    try { el.muted = true; } catch (e) {}
-    try { el.volume = 0; } catch (e) {}
+  var muteEl = (el) => {
+    try { el.muted = true; } catch (_e) {}
+    try { el.volume = 0; } catch (_e) {}
     try {
-      Object.defineProperty(el, "volume", { configurable: true, get: function () { return 0; }, set: function () {} });
-      Object.defineProperty(el, "muted", { configurable: true, get: function () { return true; }, set: function () {} });
-    } catch (e) {}
-    if (el.setAttribute) { try { el.setAttribute("muted", ""); } catch (e) {} }
+      Object.defineProperty(el, "volume", { configurable: true, get: () => 0, set: () => {} });
+      Object.defineProperty(el, "muted", { configurable: true, get: () => true, set: () => {} });
+    } catch (_e) {}
+    if (el.setAttribute) { try { el.setAttribute("muted", ""); } catch (_e) {} }
   };
 
-  var killAd = function (el) {
+  var killAd = (el) => {
     var oldSrc = String(el.currentSrc || el.src || "");
     var dur = el.duration || 0;
     muteEl(el);
-    try { el.currentTime = dur; } catch (e) {}
-    try { el.pause(); } catch (e) {}
-    try { el.dispatchEvent(new Event("ended", { bubbles: false })); } catch (e) {}
-    var guard = setInterval(function () {
+    try { el.currentTime = dur; } catch (_e) {}
+    try { el.pause(); } catch (_e) {}
+    try { el.dispatchEvent(new Event("ended", { bubbles: false })); } catch (_e) {}
+    var guard = setInterval(() => {
       muteEl(el);
       var cur = String(el.currentSrc || el.src || "");
       if ((el.duration || 0) >= 67 && cur !== oldSrc) { clearInterval(guard); return; }
-      try { el.currentTime = el.duration || 999999; } catch (e) {}
-      try { el.pause(); } catch (e) {}
+      try { el.currentTime = el.duration || 999999; } catch (_e) {}
+      try { el.pause(); } catch (_e) {}
     }, 200);
-    setTimeout(function () { try { clearInterval(guard); } catch (e) {} }, 4000);
+    setTimeout(() => { try { clearInterval(guard); } catch (_e) {} }, 4000);
   };
 
   try {
     var origCreate = document.createElement;
-    document.createElement = function (tag) {
+    document.createElement = function (_tag) {
       var el = origCreate.apply(this, arguments);
       if (el instanceof HTMLMediaElement) {
         el.addEventListener("play", function () {
           if (isAdMedia(this)) killAd(this);
         }, true);
         el.addEventListener("loadedmetadata", function () {
-          if (isAdMedia(this)) { try { this.pause(); } catch (e) {} }
+          if (isAdMedia(this)) { try { this.pause(); } catch (_e) {} }
         }, true);
         el.addEventListener("timeupdate", function () {
           if ((this.duration || 0) > 0 && (this.duration || 0) < 67 && !this.paused) killAd(this);
@@ -75,7 +75,7 @@
       }
       return el;
     };
-  } catch (e) {}
+  } catch (_e) {}
 
   try {
     var origProtoPlay = HTMLMediaElement.prototype.play;
@@ -83,19 +83,19 @@
       if (isAdMedia(this)) { killAd(this); return Promise.resolve(); }
       return origProtoPlay.apply(this, arguments);
     };
-    document.addEventListener("play", function (e) {
+    document.addEventListener("play", (e) => {
       var t = e.target;
-      if (t && t.duration && t.duration < 67 && t.duration > 0) killAd(t);
+      if (t?.duration && t.duration < 67 && t.duration > 0) killAd(t);
     }, true);
-    document.addEventListener("loadedmetadata", function (e) {
+    document.addEventListener("loadedmetadata", (e) => {
       var t = e.target;
-      if (t && t.duration && t.duration < 67 && t.duration > 0) killAd(t);
+      if (t?.duration && t.duration < 67 && t.duration > 0) killAd(t);
     }, true);
-    document.addEventListener("timeupdate", function (e) {
+    document.addEventListener("timeupdate", (e) => {
       var t = e.target;
       if (t && t instanceof HTMLMediaElement && !t.paused && isAdMedia(t)) killAd(t);
     }, true);
-  } catch (e) {}
+  } catch (_e) {}
 
   try {
     var origSrcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
@@ -106,24 +106,23 @@
         var s = String(v || "");
         var isAdLike = /audio-fa\.scdn\.co\/audio/i.test(s) || /adstudio/i.test(s) || /audio-ads/i.test(s) || /\.scdn\.co\/mp3\//i.test(s) || /^spotify-audio:\/\//i.test(s);
         if (isAdLike && !s.startsWith("blob:")) {
-          var self = this;
-          muteEl(self);
-          var guard = setInterval(function () { muteEl(self); }, 300);
-          var stopGuard = function () {
+          muteEl(this);
+          var guard = setInterval(() => { muteEl(this); }, 300);
+          var stopGuard = () => {
             clearInterval(guard);
-            self.removeEventListener("ended", stopGuard);
-            self.removeEventListener("error", stopGuard);
+            this.removeEventListener("ended", stopGuard);
+            this.removeEventListener("error", stopGuard);
           };
-          self.addEventListener("ended", stopGuard);
-          self.addEventListener("error", stopGuard);
+          this.addEventListener("ended", stopGuard);
+          this.addEventListener("error", stopGuard);
           return origSrcDesc.set.call(this, v);
         }
         return origSrcDesc.set.call(this, v);
       }
     });
-  } catch (e) {}
+  } catch (_e) {}
 
-  setInterval(function () {
+  setInterval(() => {
     try {
       var scanEls;
       function collectSc(root) {
@@ -140,7 +139,7 @@
         var el = scanEls[i];
         if (isAdMedia(el) && !el.paused) killAd(el);
       }
-    } catch (e) {}
+    } catch (_e) {}
   }, 200);
 
   function processWsMessage(event) {
@@ -153,7 +152,7 @@
         var payload = data.payloads[i];
 
         // Drop ad payload
-        if (payload.cluster && payload.cluster.player_state && payload.cluster.player_state.track) {
+        if (payload.cluster?.player_state?.track) {
           var ctrack = payload.cluster.player_state.track;
           var adCluster = /:ad:/.test(String(ctrack.uri || "")) ||
                           /^ads\//.test(String(ctrack.provider || "")) ||
@@ -169,7 +168,7 @@
 
         if (payload.type === "replace_state" && payload.state_machine) {
           var sm = payload.state_machine;
-          if (sm && sm.states && sm.tracks) {
+          if (sm?.states && sm.tracks) {
             for (var j = 0; j < sm.states.length; j++) {
               if (isAdState(sm.states[j], sm)) {
                 var next = getNextNonAdState(sm, j);
@@ -199,31 +198,31 @@
         });
       }
       return event;
-    } catch (e) {
+    } catch (_e) {
       return event;
     }
   }
 
   var _WS = WebSocket;
-  WebSocket = function (url, protocols) {
+  WebSocket = (url, protocols) => {
     var ws = protocols ? new _WS(url, protocols) : new _WS(url);
     var _origOnMessage = null;
 
-    ws.addEventListener("message", function (event) {
+    ws.addEventListener("message", (event) => {
       if (!_origOnMessage) return;
       var processed = processWsMessage(event);
       _origOnMessage.call(ws, processed);
     });
 
     Object.defineProperty(ws, "onmessage", {
-      get: function () { return _origOnMessage; },
-      set: function (fn) { _origOnMessage = fn; }
+      get: () => _origOnMessage,
+      set: (fn) => { _origOnMessage = fn; }
     });
 
     var _origAddEventListener = ws.addEventListener.bind(ws);
-    ws.addEventListener = function (type, listener, options) {
+    ws.addEventListener = (type, listener, options) => {
       if (type === "message" && typeof listener === "function") {
-        var wrappedListener = function (event) {
+        var wrappedListener = (event) => {
           var processed = processWsMessage(event);
           listener.call(ws, processed);
         };
@@ -242,7 +241,7 @@
   WebSocket.CLOSED = _WS.CLOSED;
 
   function isAdTrack(track) {
-    if (!track || !track.metadata) return false;
+    if (!track?.metadata) return false;
     var uri = track.metadata.uri || track.uri || "";
     return uri.includes(":ad:") || track.content_type === "AD";
   }
@@ -261,7 +260,7 @@
     while (maxIter-- > 0) {
       var state = states[idx];
       if (!state) return null;
-      var advance = state.transitions && state.transitions.advance;
+      var advance = state.transitions?.advance;
       if (!advance) return null;
       var nextIdx = advance.state_index;
       if (visited[nextIdx]) return null;
@@ -275,7 +274,7 @@
   }
 
   function shortenState(state, track) {
-    var duration = (track && track.metadata && track.metadata.duration) || 0;
+    var duration = (track?.metadata?.duration) || 0;
     state.disallow_seeking = false;
     state.restrictions = {};
     state.initial_playback_position = duration;
@@ -285,7 +284,7 @@
 
   async function fetchMoreStates(stateMachineId, stateId) {
     if (!authorization || !deviceId) return null;
-    var url = "https://spclient.wg.spotify.com/track-playback/v1/devices/" + deviceId + "/state";
+    var url = `https://spclient.wg.spotify.com/track-playback/v1/devices/${deviceId}/state`;
     var body = JSON.stringify({
       seq_num: Date.now(),
       state_ref: { state_machine_id: stateMachineId, state_id: stateId, paused: false },
@@ -302,11 +301,11 @@
       if (resp.status !== 200) return null;
       var data = await resp.json();
       return data.state_machine || null;
-    } catch (e) { return null; }
+    } catch (_e) { return null; }
   }
 
   async function manipulateStateMachine(stateMachine) {
-    if (!stateMachine || !stateMachine.states || !stateMachine.tracks) return stateMachine;
+    if (!stateMachine?.states || !stateMachine.tracks) return stateMachine;
 
     var states = stateMachine.states;
     var tracks = stateMachine.tracks;
@@ -355,37 +354,37 @@
     return stateMachine;
   }
 
-  window.fetch = function (url, init) {
-    var urlStr = typeof url === "string" ? url : (url && url.url) || "";
-    var method = (init && init.method) || (url && url.method) || "GET";
+  window.fetch = (url, init) => {
+    var urlStr = typeof url === "string" ? url : (url?.url) || "";
+    var method = (init?.method) || (url?.method) || "GET";
 
     if (urlStr.includes("spclient.wg.spotify.com")) {
       var h = null;
-      if (init && init.headers) {
+      if (init?.headers) {
         h = init.headers;
       } else if (url && typeof url !== "string" && url.headers) {
         h = url.headers;
       }
       if (h) {
-        var auth = h.authorization || h.Authorization || (h.get && h.get("authorization"));
+        var auth = h.authorization || h.Authorization || (h.get?.("authorization"));
         if (auth) authorization = auth;
       }
     }
 
-    if (urlStr.endsWith("/devices") && init && init.body) {
+    if (urlStr.endsWith("/devices") && init?.body) {
       try {
         var parsed = JSON.parse(init.body);
-        if (parsed.device && parsed.device.device_id) {
+        if (parsed.device?.device_id) {
           deviceId = parsed.device.device_id;
         }
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     if (method.toUpperCase() === "PUT" && urlStr.endsWith("/state") && urlStr.includes("spclient.wg.spotify.com")) {
-      return originalFetch.call(window, url, init).then(function (response) {
+      return originalFetch.call(window, url, init).then((response) => {
         var clone = response.clone();
-        return response.json().then(async function (data) {
-          if (!data || !data.state_machine) return clone;
+        return response.json().then(async (data) => {
+          if (!data?.state_machine) return clone;
           try {
             data.state_machine = await manipulateStateMachine(data.state_machine);
             return new Response(JSON.stringify(data), {
@@ -397,7 +396,7 @@
             console.error("[unspot] fetch manipulation failed:", e);
             return clone;
           }
-        }).catch(function () { return clone; });
+        }).catch(() => clone);
       });
     }
 

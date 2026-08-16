@@ -64,17 +64,20 @@ function isLoginRelated(details) {
 }
 
 function isAdAudioRequest(url) {
-  for (var i = 0; i < adAudioPatterns.length; i++) {
+  var i;
+  for (i = 0; i < adAudioPatterns.length; i++) {
     if (adAudioPatterns[i].test(url)) return true;
   }
   return false;
 }
 
 browser.webRequest.onBeforeRequest.addListener(
-  function (details) {
+  (details) => {
     if (isLoginRelated(details)) return;
     var url = details.url;
     var host = (url.split("/")[2] || "").split(":")[0];
+    var path;
+    var j;
     if (isAdAudioRequest(url)) {
       return { cancel: true };
     }
@@ -85,9 +88,9 @@ browser.webRequest.onBeforeRequest.addListener(
       return { cancel: true };
     }
     if (/spclient.*\.spotify\.com/.test(host)) {
-      var path = url.replace(/^https?:\/\/[^/]+/, "");
-      for (var i = 0; i < adApiPaths.length; i++) {
-        if (adApiPaths[i].test(path)) {
+      path = url.replace(/^https?:\/\/[^/]+/, "");
+      for (j = 0; j < adApiPaths.length; j++) {
+        if (adApiPaths[j].test(path)) {
           return { cancel: true };
         }
       }
@@ -111,24 +114,27 @@ var cachePatterns = [
 ];
 
 browser.webRequest.onHeadersReceived.addListener(
-  function (details) {
+  (details) => {
     if (isLoginRelated(details)) return;
     var url = details.url;
     var headers = details.responseHeaders || [];
+    var i;
+    var isStatic;
+    var found;
     // allow MAIN world script
     if (/open\.spotify\.com/.test(url)) {
-      for (var i = 0; i < headers.length; i++) {
+      for (i = 0; i < headers.length; i++) {
         if (headers[i].name.toLowerCase() === "content-security-policy") {
           headers[i].value = "";
         }
       }
     }
-    var isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
+    isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
       /\.scdn\.co$/.test((url.split("/")[2] || "").split(":")[0]) ||
       /\.spotifycdn\.com$/.test((url.split("/")[2] || "").split(":")[0]);
     if (!isStatic) return { responseHeaders: headers };
-    var found = false;
-    for (var i = 0; i < headers.length; i++) {
+    found = false;
+    for (i = 0; i < headers.length; i++) {
       if (headers[i].name.toLowerCase() === "cache-control") {
         headers[i].value = "public, max-age=31536000, immutable";
         found = true;

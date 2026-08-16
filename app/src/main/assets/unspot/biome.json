@@ -15,7 +15,19 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "correctness": {
+        "noInnerDeclarations": "off"
+      },
+      "suspicious": {
+        "noGlobalAssign": "off"
+      },
+      "complexity": {
+        "noArguments": "off"
+      },
+      "performance": {
+        "noAccumulatingSpread": "off"
+      }
     }
   },
   "assist": {
