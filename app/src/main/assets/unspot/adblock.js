@@ -3,133 +3,37 @@ let authorization = "";
 let deviceId = "";
 const originalFetch = window.fetch;
 
-const isAdMedia = (el) => {
-  const src = String(el.currentSrc || el.src || "");
-  if (/:ad:/.test(src)) return true;
-  if (src.includes("adstudio") || src.includes("audio-ads")) return true;
-  const dur = el.duration || 0;
-  // i like my magic numbers
-  if (dur > 0 && dur < 67) return true;
-  return false;
-};
-
-const muteEl = (el) => {
-  try { el.muted = true; } catch (_e) {}
-  try { el.volume = 0; } catch (_e) {}
-  try {
-    Object.defineProperty(el, "volume", { configurable: true, get: () => 0, set: () => {} });
-    Object.defineProperty(el, "muted", { configurable: true, get: () => true, set: () => {} });
-  } catch (_e) {}
-  if (el.setAttribute) { try { el.setAttribute("muted", ""); } catch (_e) {} }
-};
-
-const killAd = (el) => {
-  muteEl(el);
-  const dur = el.duration || 0;
-  try { el.currentTime = dur; } catch (_e) {}
-  try { el.pause(); } catch (_e) {}
-  try { el.dispatchEvent(new Event("ended", { bubbles: false })); } catch (_e) {}
-};
-
-  try {
-    const origCreate = document.createElement;
-    document.createElement = function (_tag) {
-      const el = origCreate.apply(this, arguments);
-      if (el instanceof HTMLMediaElement) {
-        el.addEventListener("play", function () {
-          if (isAdMedia(this)) killAd(this);
-        }, true);
-        el.addEventListener("loadedmetadata", function () {
-          if (isAdMedia(this)) { try { this.pause(); } catch (_e) {} }
-        }, true);
-        el.addEventListener("timeupdate", function () {
-          if ((this.duration || 0) > 0 && (this.duration || 0) < 67 && !this.paused) killAd(this);
-        }, true);
-        const oldPlay = el.play;
-        el.play = function () {
-          if (isAdMedia(this)) { killAd(this); return Promise.resolve(); }
-          return oldPlay.apply(this, arguments);
-        };
-        // setAttribute("src", adUrl) bypasses the src property setter
-        const oldSetAttr = el.setAttribute;
-        el.setAttribute = function (name, value) {
-          if (name === "src") {
-            const s = String(value || "");
-            if (/adstudio/i.test(s) || /audio-ads/i.test(s) || /audio-fa\.scdn\.co/i.test(s)) {
-              muteEl(this);
-            }
+  const originalCreateElement = document.createElement;
+  document.createElement = (() => {
+    return function () {
+      const element = originalCreateElement.apply(this, arguments);
+      if (element instanceof HTMLMediaElement) {
+        const oldPlay = element.play;
+        element.play = function () {
+          if (!this.src.startsWith("blob:https://open.spotify.com/") && this.duration < 67) {
+            this.dispatchEvent(new Event("play"));
+            const oldSrc = this.src.toString();
+            setTimeout(() => {
+              this.currentTime = this.duration;
+              this.dispatchEvent(new Event("timeupdate"));
+              const inter = setInterval(() => {
+                if (this.src !== oldSrc) {
+                  this.currentTime = 0;
+                  return clearInterval(inter);
+                }
+                this.currentTime = this.duration;
+                this.dispatchEvent(new Event("ended"));
+              }, 400);
+              setTimeout(() => { try { clearInterval(inter); } catch (_e) {} }, 2000);
+            }, 20);
+          } else {
+            oldPlay.apply(this, arguments);
           }
-          return oldSetAttr.apply(this, arguments);
         };
       }
-      return el;
+      return element;
     };
-  } catch (_e) {}
-
-  try {
-    const origProtoPlay = HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play = function () {
-      if (isAdMedia(this)) { killAd(this); return Promise.resolve(); }
-      return origProtoPlay.apply(this, arguments);
-    };
-    document.addEventListener("play", (e) => {
-      const t = e.target;
-      if (t?.duration && t.duration < 67 && t.duration > 0) killAd(t);
-    }, true);
-    document.addEventListener("loadedmetadata", (e) => {
-      const t = e.target;
-      if (t?.duration && t.duration < 67 && t.duration > 0) killAd(t);
-    }, true);
-    document.addEventListener("timeupdate", (e) => {
-      const t = e.target;
-      if (t && t instanceof HTMLMediaElement && !t.paused && isAdMedia(t)) killAd(t);
-    }, true);
-  } catch (_e) {}
-
-  try {
-    const origSrcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
-    Object.defineProperty(HTMLMediaElement.prototype, "src", {
-      configurable: true,
-      get: function () { return origSrcDesc.get.call(this); },
-      set: function (v) {
-        const s = String(v || "");
-        const isAdLike = /audio-fa\.scdn\.co\/audio/i.test(s) || /adstudio/i.test(s) || /audio-ads/i.test(s) || /\.scdn\.co\/mp3\//i.test(s) || /^spotify-audio:\/\//i.test(s);
-        if (isAdLike && !s.startsWith("blob:")) {
-          muteEl(this);
-          const guard = setInterval(() => { muteEl(this); }, 300);
-          const stopGuard = () => {
-            clearInterval(guard);
-            this.removeEventListener("ended", stopGuard);
-            this.removeEventListener("error", stopGuard);
-          };
-          this.addEventListener("ended", stopGuard);
-          this.addEventListener("error", stopGuard);
-          return origSrcDesc.set.call(this, v);
-        }
-        return origSrcDesc.set.call(this, v);
-      }
-    });
-  } catch (_e) {}
-
-  setInterval(() => {
-    try {
-      let scanEls;
-      function collectSc(root) {
-        const w = root.querySelectorAll ? root.querySelectorAll("audio,video") : [];
-        for (let i = 0; i < w.length; i++) scanEls.push(w[i]);
-        const hosts = root.querySelectorAll ? root.querySelectorAll("*") : [];
-        for (let j = 0; j < hosts.length; j++) {
-          if (hosts[j].shadowRoot) collectSc(hosts[j].shadowRoot);
-        }
-      }
-      scanEls = [];
-      collectSc(document);
-      for (let i = 0; i < scanEls.length; i++) {
-        const el = scanEls[i];
-        if (isAdMedia(el) && !el.paused) killAd(el);
-      }
-    } catch (_e) {}
-  }, 200);
+  })();
 
   function processWsMessage(event) {
     try {
