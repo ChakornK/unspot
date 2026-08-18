@@ -202,7 +202,8 @@ const killAd = (el) => {
   }
 
   const _WS = WebSocket;
-  WebSocket = (url, protocols) => {
+  // must be real function for constructor to exist
+  WebSocket = function WebSocket(url, protocols) {
     const ws = protocols ? new _WS(url, protocols) : new _WS(url);
     let _origOnMessage = null;
 
