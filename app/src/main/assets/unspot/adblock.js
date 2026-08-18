@@ -61,22 +61,8 @@ const originalFetch = window.fetch;
 
         if (payload.type === "replace_state" && payload.state_machine) {
           const sm = payload.state_machine;
-          if (sm?.states && sm.tracks) {
-            for (let j = 0; j < sm.states.length; j++) {
-              if (isAdState(sm.states[j], sm)) {
-                const next = getNextNonAdState(sm, j);
-                if (next) {
-                  const rep = JSON.parse(JSON.stringify(next));
-                  rep.state_id = sm.states[j].state_id;
-                  sm.states[j] = rep;
-                } else {
-                  sm.states[j] = shortenState(sm.states[j], sm.tracks[sm.states[j].track]);
-                }
-                modified = true;
-              }
-            }
-            payload.state_machine = sm;
-            data.payloads[i] = payload;
+          if (sm?.states && sm.tracks && rewireAds(sm)) {
+            modified = true;
           }
         }
       }
@@ -135,9 +121,15 @@ const originalFetch = window.fetch;
   WebSocket.CLOSED = _WS.CLOSED;
 
   function isAdTrack(track) {
-    if (!track?.metadata) return false;
-    const uri = track.metadata.uri || track.uri || "";
-    return uri.includes(":ad:") || track.content_type === "AD";
+    if (!track) return false;
+    const meta = track.metadata || {};
+    const uri = String(meta.uri || track.uri || "");
+    const provider = String(meta.provider || track.provider || "");
+    const contentType = String(track.content_type || "").toUpperCase();
+    return uri.includes(":ad:") ||
+           uri.startsWith("ads/") ||
+           provider.startsWith("ads/") ||
+           contentType === "AD";
   }
 
   function isAdState(state, stateMachine) {
@@ -146,7 +138,7 @@ const originalFetch = window.fetch;
     return isAdTrack(track);
   }
 
-  function getNextNonAdState(stateMachine, fromIndex) {
+  function nextNonAdIndex(stateMachine, fromIndex) {
     const states = stateMachine.states;
     const visited = {};
     let idx = fromIndex;
@@ -155,14 +147,13 @@ const originalFetch = window.fetch;
       const state = states[idx];
       if (!state) return null;
       const advance = state.transitions?.advance;
-      if (!advance) return null;
-      const nextIdx = advance.state_index;
-      if (visited[nextIdx]) return null;
-      visited[nextIdx] = true;
-      const nextState = states[nextIdx];
+      if (!advance || typeof advance.state_index !== "number") return null;
+      if (visited[advance.state_index]) return null;
+      visited[advance.state_index] = true;
+      idx = advance.state_index;
+      const nextState = states[idx];
       if (!nextState) return null;
-      if (!isAdState(nextState, stateMachine)) return nextState;
-      idx = nextIdx;
+      if (!isAdState(nextState, stateMachine)) return idx;
     }
     return null;
   }
@@ -198,53 +189,59 @@ const originalFetch = window.fetch;
     } catch (_e) { return null; }
   }
 
-  async function manipulateStateMachine(stateMachine) {
-    if (!stateMachine?.states || !stateMachine.tracks) return stateMachine;
-
+  function rewireAds(stateMachine) {
     const states = stateMachine.states;
-    const tracks = stateMachine.tracks;
-
+    const succ = new Array(states.length);
+    for (let i = 0; i < states.length; i++) succ[i] = nextNonAdIndex(stateMachine, i);
+    let modified = false;
     for (let i = 0; i < states.length; i++) {
       const state = states[i];
-      if (!isAdState(state, stateMachine)) continue;
-
-      const track = tracks[state.track];
-      const nextState = getNextNonAdState(stateMachine, i);
-
-      if (nextState) {
-        const replacement = JSON.parse(JSON.stringify(nextState));
-        replacement.state_id = state.state_id;
-        states[i] = replacement;
-      } else {
-        const fetched = await fetchMoreStates(
-          stateMachine.state_machine_id,
-          state.state_id
-        );
-        if (fetched) {
-          let fetchedNext = null;
-          for (let j = 0; j < (fetched.states || []).length; j++) {
-            const fs = fetched.states[j];
-            const ft = fetched.tracks[fs.track];
-            if (!isAdTrack(ft)) { fetchedNext = fs; break; }
-          }
-          if (fetchedNext) {
-            const newTrackIdx = tracks.length;
-            tracks.push(fetched.tracks[fetchedNext.track]);
-            fetchedNext.track = newTrackIdx;
-            fetchedNext.state_id = state.state_id;
-            fetchedNext.transitions = {};
-            states[i] = fetchedNext;
-          } else {
-            states[i] = shortenState(state, track);
-          }
-        } else {
-          states[i] = shortenState(state, track);
-        }
+      const ad = isAdState(state, stateMachine);
+      const target = succ[i];
+      if (target != null) {
+        if (!state.transitions) state.transitions = {};
+        const tr = state.transitions;
+        tr.advance = tr.advance || {};
+        if (tr.advance.state_index !== target) { tr.advance.state_index = target; modified = true; }
+        if (ad) { shortenState(state, stateMachine.tracks[state.track]); modified = true; }
+      } else if (ad) {
+        shortenState(state, stateMachine.tracks[state.track]);
+        modified = true;
       }
     }
+    return modified;
+  }
 
-    stateMachine.states = states;
-    stateMachine.tracks = tracks;
+  async function manipulateStateMachine(stateMachine) {
+    if (!stateMachine?.states || !stateMachine.tracks) return stateMachine;
+    for (let i = 0; i < stateMachine.states.length; i++) {
+      const state = stateMachine.states[i];
+      if (!isAdState(state, stateMachine)) continue;
+      if (nextNonAdIndex(stateMachine, i) != null) continue;
+      const adv = state.transitions?.advance;
+      const tail = !adv || typeof adv.state_index !== "number" || !stateMachine.states[adv.state_index];
+      if (!tail) continue;
+      const fetched = await fetchMoreStates(stateMachine.state_machine_id, state.state_id);
+      if (!fetched?.states || !fetched.tracks) continue;
+      let fs = null;
+      for (let j = 0; j < fetched.states.length; j++) {
+        const cand = fetched.states[j];
+        if (cand && !isAdTrack(fetched.tracks[cand.track])) { fs = cand; break; }
+      }
+      if (!fs) continue;
+      const newTrackIdx = stateMachine.tracks.length;
+      stateMachine.tracks.push(fetched.tracks[fs.track]);
+      const clone = JSON.parse(JSON.stringify(fs));
+      clone.track = newTrackIdx;
+      clone.transitions = {};
+      stateMachine.states.push(clone);
+      const newIdx = stateMachine.states.length - 1;
+      if (!state.transitions) state.transitions = {};
+      const tr = state.transitions;
+      tr.advance = tr.advance || {};
+      tr.advance.state_index = newIdx;
+    }
+    rewireAds(stateMachine);
     return stateMachine;
   }
 
