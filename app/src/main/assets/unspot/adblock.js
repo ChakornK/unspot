@@ -23,24 +23,8 @@ const muteEl = (el) => {
   if (el.setAttribute) { try { el.setAttribute("muted", ""); } catch (_e) {} }
 };
 
-const skipState = new WeakMap();
-const sdkSkipAd = (el) => {
-  try {
-    const c = window.Platform?.AdManagers?.audio?.inStreamApi?.adsCoreConnector;
-    if (!c || typeof c.skipToNextWithOverride !== "function") return false;
-    const src = String(el.currentSrc || el.src || "");
-    let st = skipState.get(el);
-    if (!st || st.src !== src) { st = { src, called: false }; skipState.set(el, st); }
-    if (st.called) return true;
-    c.skipToNextWithOverride({});
-    st.called = true;
-    return true;
-  } catch (_e) { return false; }
-};
-
 const killAd = (el) => {
   muteEl(el);
-  if (sdkSkipAd(el)) return;
   const dur = el.duration || 0;
   try { el.currentTime = dur; } catch (_e) {}
   try { el.pause(); } catch (_e) {}
