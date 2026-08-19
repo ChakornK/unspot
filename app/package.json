@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "format": "prettier --write .",
-    "lint": "biome lint --write ."
+    "format": "prettier --write \"src/main/assets/unspot/**/*.js\"",
+    "lint": "biome lint --write src/main/assets/unspot"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
