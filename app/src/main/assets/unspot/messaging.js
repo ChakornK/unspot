@@ -1,3 +1,5 @@
+const logErr = (ctx, e) => window.postMessage({ direction: "from-page-script", message: { type: "log", level: "error", text: `[messaging] ${ctx}: ${(e?.stack ?? e?.message ?? String(e)).toString().slice(0, 1500)}` } }, "*");
+
 let Platform;
 (() => {
   const CHUNK_GLOBALS = ["rspackChunk", "rspackChunkclient_web", "webpackChunkclient_web"];
@@ -378,7 +380,7 @@ const postLibraryUpdate = async () => {
         if (typeof manager.disable === "function") manager.disable();
         else if (typeof manager.disableLeaderboard === "function") manager.disableLeaderboard();
         else if ("enabled" in manager) manager.enabled = false;
-      } catch (_e) {}
+      } catch (e) { logErr("disableManager", e); }
     };
 
     const managerPaths = [
@@ -427,8 +429,8 @@ const postLibraryUpdate = async () => {
     setInterval(() => {
       try {
         if (adManagers.audio && adManagers.audio.enabled !== false) disableManager(adManagers.audio);
-      } catch (_e) {}
+      } catch (e) { logErr("adInterval", e); }
     }, 10000);
-  } catch (_e) {}
+  } catch (e) { logErr("adManagersInit", e); }
 })();
 

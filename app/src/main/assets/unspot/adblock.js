@@ -2,6 +2,7 @@
 let authorization = "";
 let deviceId = "";
 const originalFetch = window.fetch;
+const logErr = (ctx, e) => window.postMessage({ direction: "from-page-script", message: { type: "log", level: "error", text: `[adblock] ${ctx}: ${(e?.stack ?? e?.message ?? String(e)).toString().slice(0, 1500)}` } }, "*");
 
   const originalCreateElement = document.createElement;
   document.createElement = (() => {
@@ -77,7 +78,8 @@ const originalFetch = window.fetch;
         });
       }
       return event;
-    } catch (_e) {
+    } catch (e) {
+      logErr("processWsMessage", e);
       return event;
     }
   }
@@ -186,7 +188,7 @@ const originalFetch = window.fetch;
       if (resp.status !== 200) return null;
       const data = await resp.json();
       return data.state_machine || null;
-    } catch (_e) { return null; }
+    } catch (e) { logErr("fetchMoreStates", e); return null; }
   }
 
   function rewireAds(stateMachine) {
@@ -284,7 +286,7 @@ const originalFetch = window.fetch;
               headers: response.headers
             });
           } catch (e) {
-            console.error("[unspot] fetch manipulation failed:", e);
+            logErr("fetchManipulate", e);
             return clone;
           }
         }).catch(() => clone);

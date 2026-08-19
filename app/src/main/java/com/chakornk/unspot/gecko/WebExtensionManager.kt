@@ -32,9 +32,18 @@ class WebExtensionManager {
 
     private val portDelegate = object : WebExtension.PortDelegate {
         override fun onPortMessage(@NonNull message: Any, @NonNull port: WebExtension.Port) {
-            Log.d("WebExtensionManager", "Received message: $message")
             if (message is JSONObject) {
                 val type = message.optString("type")
+                if (type == "log") {
+                    val text = message.optString("text", "")
+                    when (message.optString("level", "info")) {
+                        "error" -> Log.e("unspot", text)
+                        "warn" -> Log.w("unspot", text)
+                        else -> Log.i("unspot", text)
+                    }
+                    return
+                }
+                Log.d("WebExtensionManager", "Received message: $message")
                 if (type.isNotEmpty()) {
                     _messages.tryEmit(WebExtensionMessage(type, message.optJSONObject("data"), message))
                 }
