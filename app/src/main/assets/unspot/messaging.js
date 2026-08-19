@@ -1,8 +1,23 @@
-const logErr = (ctx, e) => window.postMessage({ direction: "from-page-script", message: { type: "log", level: "error", text: `[messaging] ${ctx}: ${(e?.stack ?? e?.message ?? String(e)).toString().slice(0, 1500)}` } }, "*");
+const logErr = (ctx, e) =>
+  window.postMessage(
+    {
+      direction: "from-page-script",
+      message: {
+        type: "log",
+        level: "error",
+        text: `[messaging] ${ctx}: ${(e?.stack ?? e?.message ?? String(e)).toString().slice(0, 1500)}`,
+      },
+    },
+    "*",
+  );
 
 let Platform;
 (() => {
-  const CHUNK_GLOBALS = ["rspackChunk", "rspackChunkclient_web", "webpackChunkclient_web"];
+  const CHUNK_GLOBALS = [
+    "rspackChunk",
+    "rspackChunkclient_web",
+    "webpackChunkclient_web",
+  ];
 
   const definePlatform = () => {
     Object.defineProperty(window, "Platform", {
@@ -16,9 +31,7 @@ let Platform;
   const installHook = (require) => {
     const originalD = require.d.bind(require);
     require.d = (exports, descriptors) => {
-      if (
-        Object.hasOwn(descriptors, "createPlatformWeb")
-      ) {
+      if (Object.hasOwn(descriptors, "createPlatformWeb")) {
         const originalGetter = descriptors.createPlatformWeb;
         descriptors = Object.assign({}, descriptors, {
           createPlatformWeb: () => {
@@ -378,9 +391,12 @@ const postLibraryUpdate = async () => {
       if (!manager) return;
       try {
         if (typeof manager.disable === "function") manager.disable();
-        else if (typeof manager.disableLeaderboard === "function") manager.disableLeaderboard();
+        else if (typeof manager.disableLeaderboard === "function")
+          manager.disableLeaderboard();
         else if ("enabled" in manager) manager.enabled = false;
-      } catch (e) { logErr("disableManager", e); }
+      } catch (e) {
+        logErr("disableManager", e);
+      }
     };
 
     const managerPaths = [
@@ -399,38 +415,57 @@ const postLibraryUpdate = async () => {
       let node = adManagers;
       let ok = true;
       for (const key of path.split(".")) {
-        if (!node || typeof node !== "object") { ok = false; break; }
+        if (!node || typeof node !== "object") {
+          ok = false;
+          break;
+        }
         node = node[key];
       }
       if (ok) disableManager(node);
     }
 
-    const connector =
-      adManagers.audio?.inStreamApi?.adsCoreConnector;
+    const connector = adManagers.audio?.inStreamApi?.adsCoreConnector;
     const SLOT_IDS = [
-      "preroll", "stream", "embedded-npv", "embedded-playlist-leavebehind",
-      "embedded-playlist", "hpto", "leaderboard", "podcast-midroll-1",
-      "podcast-midroll-2", "podcast-midroll-3", "podcast-midroll-4",
-      "podcast-midroll-5", "podcast-postroll", "podcast-preroll",
+      "preroll",
+      "stream",
+      "embedded-npv",
+      "embedded-playlist-leavebehind",
+      "embedded-playlist",
+      "hpto",
+      "leaderboard",
+      "podcast-midroll-1",
+      "podcast-midroll-2",
+      "podcast-midroll-3",
+      "podcast-midroll-4",
+      "podcast-midroll-5",
+      "podcast-postroll",
+      "podcast-preroll",
     ];
 
     const clearSlot = (slotId) => {
       try {
-        if (connector && typeof connector.clearSlot === "function") connector.clearSlot(slotId);
+        if (connector && typeof connector.clearSlot === "function")
+          connector.clearSlot(slotId);
       } catch (_e) {}
     };
     for (const slot of SLOT_IDS) clearSlot(slot);
     if (connector && typeof connector.subscribeToSlot === "function") {
       for (const slot of SLOT_IDS) {
-        try { connector.subscribeToSlot(slot, () => clearSlot(slot)); } catch (_e) {}
+        try {
+          connector.subscribeToSlot(slot, () => clearSlot(slot));
+        } catch (_e) {}
       }
     }
 
     setInterval(() => {
       try {
-        if (adManagers.audio && adManagers.audio.enabled !== false) disableManager(adManagers.audio);
-      } catch (e) { logErr("adInterval", e); }
+        if (adManagers.audio && adManagers.audio.enabled !== false)
+          disableManager(adManagers.audio);
+      } catch (e) {
+        logErr("adInterval", e);
+      }
     }, 10000);
-  } catch (e) { logErr("adManagersInit", e); }
+  } catch (e) {
+    logErr("adManagersInit", e);
+  }
 })();
-

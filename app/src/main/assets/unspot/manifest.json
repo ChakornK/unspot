@@ -37,7 +37,13 @@
       "all_frames": true
     }
   ],
-  "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons", "webRequest", "webRequestBlocking"],
+  "permissions": [
+    "nativeMessaging",
+    "nativeMessagingFromContent",
+    "geckoViewAddons",
+    "webRequest",
+    "webRequestBlocking"
+  ],
   "host_permissions": [
     "*://*.spotify.com/*",
     "*://*.spotify.net/*",

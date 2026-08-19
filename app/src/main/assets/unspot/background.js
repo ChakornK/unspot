@@ -22,15 +22,9 @@ const spotifyTelemetry = [
 ];
 
 // Ad API path patterns to block (uBlock/abba23 style denylist)
-const adApiPaths = [
-  /\/ads\//,
-  /\/ad-logic\//,
-  /\/gabo-receiver-service\//,
-];
+const adApiPaths = [/\/ads\//, /\/ad-logic\//, /\/gabo-receiver-service\//];
 
-const adAudioPatterns = [
-  /\/mp3\/(ad|preview)/i,
-];
+const adAudioPatterns = [/\/mp3\/(ad|preview)/i];
 
 const isSpotify = /(^|\.)spotify\.com$/;
 
@@ -60,7 +54,10 @@ const patterns = [
 function isLoginRelated(details) {
   const url = details.url;
   const origin = details.originUrl || details.documentUrl || "";
-  return url.includes("accounts.spotify.com") || origin.includes("accounts.spotify.com");
+  return (
+    url.includes("accounts.spotify.com") ||
+    origin.includes("accounts.spotify.com")
+  );
 }
 
 function isAdAudioRequest(url) {
@@ -128,7 +125,10 @@ browser.webRequest.onHeadersReceived.addListener(
         }
       }
     }
-    const isStatic = /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(url) ||
+    const isStatic =
+      /\.(js|css|woff2?|ttf|otf|eot|png|jpe?g|gif|webp|svg|ico|woff)(\?|$)/i.test(
+        url,
+      ) ||
       /\.scdn\.co$/.test((url.split("/")[2] || "").split(":")[0]) ||
       /\.spotifycdn\.com$/.test((url.split("/")[2] || "").split(":")[0]);
     if (!isStatic) return { responseHeaders: headers };
@@ -141,7 +141,10 @@ browser.webRequest.onHeadersReceived.addListener(
       }
     }
     if (!found) {
-      headers.push({ name: "Cache-Control", value: "public, max-age=31536000, immutable" });
+      headers.push({
+        name: "Cache-Control",
+        value: "public, max-age=31536000, immutable",
+      });
     }
     return { responseHeaders: headers };
   },
